@@ -2,68 +2,25 @@ import SwiftUI
 
 // MARK: - Task List View
 struct TaskListView: View {
-    @State private var tasks: [Task]
-    @State private var selectedFilter: TaskFilter = .all
-    @State private var searchText = ""
-    
-    enum TaskFilter: String, CaseIterable {
-        case all = "全て"
-        case pending = "未完了"
-        case completed = "完了"
-        case today = "今日"
-    }
-    
-    init(tasks: [Task] = PreviewContainer.mockTasks) {
-        _tasks = State(initialValue: tasks)
-    }
-    
-    var filteredTasks: [Task] {
-        var result = tasks
-        
-        // フィルタリング
-        switch selectedFilter {
-        case .all:
-            break
-        case .pending:
-            result = result.filter { $0.status != .completed && $0.status != .archived }
-        case .completed:
-            result = result.filter { $0.status == .completed }
-        case .today:
-            let today = Calendar.current.startOfDay(for: Date())
-            result = result.filter { task in
-                guard let dueDate = task.dueDate else { return false }
-                return Calendar.current.isDate(dueDate, inSameDayAs: today)
-            }
-        }
-        
-        // 検索
-        if !searchText.isEmpty {
-            result = result.filter { task in
-                task.title.localizedCaseInsensitiveContains(searchText) ||
-                (task.description?.localizedCaseInsensitiveContains(searchText) ?? false)
-            }
-        }
-        
-        return result
-    }
+    @StateObject private var viewModel = TaskViewModel()
     
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
                 // 検索バー
-                SearchBar(text: $searchText)
+                SearchBar(text: $viewModel.searchText)
                     .padding(.horizontal)
                     .padding(.top, 8)
                 
                 // フィルタ
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 12) {
-                        ForEach(TaskFilter.allCases, id: \.self) { filter in
+                        ForEach(TaskViewModel.TaskFilter.allCases, id: \.self) { filter in
                             FilterButton(
                                 title: filter.rawValue,
-                                isSelected: selectedFilter == filter
+                                isSelected: viewModel.selectedFilter == filter
                             ) {
-                                selectedFilter = filter
+                                viewModel.selectedFilter = filter
                             }
                         }
                     }
@@ -71,24 +28,35 @@ struct TaskListView: View {
                     .padding(.vertical, 12)
                 }
                 
+                // ローディング表示
+                if viewModel.isLoading {
+                    ProgressView()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
                 // タスク一覧
-                if filteredTasks.isEmpty {
+                else if viewModel.filteredTasks.isEmpty {
                     EmptyStateView(
                         icon: "checklist",
                         title: "タスクがありません",
-                        message: selectedFilter == .completed ? "完了したタスクはまだありません" : "新しいタスクを作成しましょう"
+                        message: viewModel.selectedFilter == .completed ? "完了したタスクはまだありません" : "新しいタスクを作成しましょう"
                     )
                 } else {
                     ScrollView {
                         LazyVStack(spacing: 16) {
-                            ForEach(filteredTasks) { task in
+                            ForEach(viewModel.filteredTasks) { task in
                                 TaskCardView(
                                     task: task,
                                     onComplete: { completedTask, photo in
-                                        if let index = tasks.firstIndex(where: { $0.id == completedTask.id }) {
-                                            tasks[index] = completedTask
+                                        // TaskViewModelを使ってタスクを完了
+                                        _Concurrency.Task {
+                                            do {
+                                                let photoURL = photo != nil ? "photo_\(completedTask.id)" : nil
+                                                let result = try await viewModel.completeTask(completedTask, photoURL: photoURL)
+                                                print("タスク完了: \(result.completedTask.title), 獲得XP: \(result.xpGained)")
+                                            } catch {
+                                                print("エラー: \(error.localizedDescription)")
+                                            }
                                         }
-                                        HapticManager.shared.taskCompleted()
                                     }
                                 )
                                 .padding(.horizontal)
@@ -106,9 +74,14 @@ struct TaskListView: View {
                     endPoint: .bottomTrailing
                 )
             )
+            .task {
+                // ビューが表示されたときにタスクを読み込む
+                await viewModel.loadTasks()
+            }
         }
     }
 }
+
 
 // MARK: - Search Bar
 struct SearchBar: View {
@@ -192,8 +165,7 @@ struct EmptyStateView: View {
     }
 }
 
-// MARK: - Preview
 #Preview {
-    TaskListView(tasks: PreviewContainer.mockTasks)
+    TaskListView()
 }
 

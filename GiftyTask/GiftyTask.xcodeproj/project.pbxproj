@@ -7,12 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		2A077DE72F14980000F530AE /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 2A077DC12F14980000F530AE /* Preview Assets.xcassets */; };
-		2A077DE82F14980000F530AE /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 2A077DC32F14980000F530AE /* Assets.xcassets */; };
-		2A077DE92F14980000F530AE /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A077DC42F14980000F530AE /* ContentView.swift */; };
-		2A077DEB2F14980000F530AE /* GiftyTaskTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A077DC72F14980000F530AE /* GiftyTaskTests.swift */; };
-		2A077DEC2F14980000F530AE /* GiftyTaskUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A077DC92F14980000F530AE /* GiftyTaskUITests.swift */; };
-		2A077DED2F14980000F530AE /* GiftyTaskUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A077DCA2F14980000F530AE /* GiftyTaskUITestsLaunchTests.swift */; };
 		2A077DEF2F14980000F530AE /* GlassmorphismModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A077DD22F14980000F530AE /* GlassmorphismModifier.swift */; };
 		2A077DF02F14980000F530AE /* HapticManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A077DD32F14980000F530AE /* HapticManager.swift */; };
 		2A077DF12F14980000F530AE /* PreviewContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A077DD42F14980000F530AE /* PreviewContainer.swift */; };
@@ -27,6 +21,11 @@
 		2A077DFA2F14980000F530AE /* Gift.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A077DE22F14980000F530AE /* Gift.swift */; };
 		2A077DFB2F14980000F530AE /* Task.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A077DE32F14980000F530AE /* Task.swift */; };
 		2A077DFC2F14980000F530AE /* User.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A077DE42F14980000F530AE /* User.swift */; };
+		2A7051632F165BA6000F5A24 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 2A70515D2F165BA6000F5A24 /* Preview Assets.xcassets */; };
+		2A7051652F165BA6000F5A24 /* GiftyTaskApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A7051602F165BA6000F5A24 /* GiftyTaskApp.swift */; };
+		2A7051682F165BB3000F5A24 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A7051672F165BB3000F5A24 /* ContentView.swift */; };
+		2A7051692F1B1787000F5A24 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 2A70515F2F165BA6000F5A24 /* Assets.xcassets */; };
+		2AC0255B2F2377AD00195B8F /* TaskViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AC0255A2F2377AD00195B8F /* TaskViewModel.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -50,13 +49,9 @@
 		2A077D942F14971E00F530AE /* GiftyTask.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GiftyTask.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		2A077DA42F14972200F530AE /* GiftyTaskTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = GiftyTaskTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		2A077DAE2F14972200F530AE /* GiftyTaskUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = GiftyTaskUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		2A077DC12F14980000F530AE /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
-		2A077DC32F14980000F530AE /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		2A077DC42F14980000F530AE /* ContentView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		2A077DC72F14980000F530AE /* GiftyTaskTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = GiftyTaskTests.swift; sourceTree = "<group>"; };
 		2A077DC92F14980000F530AE /* GiftyTaskUITests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = GiftyTaskUITests.swift; sourceTree = "<group>"; };
 		2A077DCA2F14980000F530AE /* GiftyTaskUITestsLaunchTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = GiftyTaskUITestsLaunchTests.swift; sourceTree = "<group>"; };
-		2A077DCC2F14980000F530AE /* GiftyTask.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = GiftyTask.xcodeproj; sourceTree = "<group>"; };
 		2A077DD22F14980000F530AE /* GlassmorphismModifier.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = GlassmorphismModifier.swift; sourceTree = "<group>"; };
 		2A077DD32F14980000F530AE /* HapticManager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = HapticManager.swift; sourceTree = "<group>"; };
 		2A077DD42F14980000F530AE /* PreviewContainer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PreviewContainer.swift; sourceTree = "<group>"; };
@@ -71,6 +66,12 @@
 		2A077DE22F14980000F530AE /* Gift.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Gift.swift; sourceTree = "<group>"; };
 		2A077DE32F14980000F530AE /* Task.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Task.swift; sourceTree = "<group>"; };
 		2A077DE42F14980000F530AE /* User.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = User.swift; sourceTree = "<group>"; };
+		2A70515D2F165BA6000F5A24 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
+		2A70515F2F165BA6000F5A24 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		2A7051602F165BA6000F5A24 /* GiftyTaskApp.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = GiftyTaskApp.swift; sourceTree = "<group>"; };
+		2A7051612F165BA6000F5A24 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		2A7051672F165BB3000F5A24 /* ContentView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		2AC0255A2F2377AD00195B8F /* TaskViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskViewModel.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -101,9 +102,14 @@
 		2A077D8B2F14971E00F530AE = {
 			isa = PBXGroup;
 			children = (
+				2AC025592F23775400195B8F /* ViewModels */,
+				2A7051672F165BB3000F5A24 /* ContentView.swift */,
+				2A7051622F165BA6000F5A24 /* App */,
+				2A077DE52F14980000F530AE /* Models */,
+				2A077DD52F14980000F530AE /* Utilities */,
+				2A077DDF2F14980000F530AE /* Views */,
 				2A077DC82F14980000F530AE /* GiftyTaskTests */,
 				2A077DCB2F14980000F530AE /* GiftyTaskUITests */,
-				2A077DCD2F14980000F530AE /* GiftyTask */,
 				2A077D952F14971E00F530AE /* Products */,
 			);
 			sourceTree = "<group>";
@@ -116,24 +122,6 @@
 				2A077DAE2F14972200F530AE /* GiftyTaskUITests.xctest */,
 			);
 			name = Products;
-			sourceTree = "<group>";
-		};
-		2A077DC22F14980000F530AE /* Preview Content */ = {
-			isa = PBXGroup;
-			children = (
-				2A077DC12F14980000F530AE /* Preview Assets.xcassets */,
-			);
-			path = "Preview Content";
-			sourceTree = "<group>";
-		};
-		2A077DC62F14980000F530AE /* GiftyTask */ = {
-			isa = PBXGroup;
-			children = (
-				2A077DC22F14980000F530AE /* Preview Content */,
-				2A077DC32F14980000F530AE /* Assets.xcassets */,
-				2A077DC42F14980000F530AE /* ContentView.swift */,
-			);
-			path = GiftyTask;
 			sourceTree = "<group>";
 		};
 		2A077DC82F14980000F530AE /* GiftyTaskTests */ = {
@@ -151,23 +139,6 @@
 				2A077DCA2F14980000F530AE /* GiftyTaskUITestsLaunchTests.swift */,
 			);
 			path = GiftyTaskUITests;
-			sourceTree = "<group>";
-		};
-		2A077DCD2F14980000F530AE /* GiftyTask */ = {
-			isa = PBXGroup;
-			children = (
-				2A077DE52F14980000F530AE /* Models */,
-				2A077DD52F14980000F530AE /* Utilities */,
-				2A077DDF2F14980000F530AE /* Views */,
-				2A077DC62F14980000F530AE /* GiftyTask */,
-				2A077DCC2F14980000F530AE /* GiftyTask.xcodeproj */,
-			);
-			name = GiftyTask;
-			sourceTree = "<group>";
-		};
-		2A077DCE2F14980000F530AE /* Products */ = {
-			isa = PBXGroup;
-			name = Products;
 			sourceTree = "<group>";
 		};
 		2A077DD52F14980000F530AE /* Utilities */ = {
@@ -227,6 +198,33 @@
 				2A077DE42F14980000F530AE /* User.swift */,
 			);
 			path = Models;
+			sourceTree = "<group>";
+		};
+		2A70515E2F165BA6000F5A24 /* Preview Content */ = {
+			isa = PBXGroup;
+			children = (
+				2A70515D2F165BA6000F5A24 /* Preview Assets.xcassets */,
+			);
+			path = "Preview Content";
+			sourceTree = "<group>";
+		};
+		2A7051622F165BA6000F5A24 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				2A70515E2F165BA6000F5A24 /* Preview Content */,
+				2A70515F2F165BA6000F5A24 /* Assets.xcassets */,
+				2A7051602F165BA6000F5A24 /* GiftyTaskApp.swift */,
+				2A7051612F165BA6000F5A24 /* Info.plist */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		2AC025592F23775400195B8F /* ViewModels */ = {
+			isa = PBXGroup;
+			children = (
+				2AC0255A2F2377AD00195B8F /* TaskViewModel.swift */,
+			);
+			path = ViewModels;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -319,12 +317,6 @@
 			mainGroup = 2A077D8B2F14971E00F530AE;
 			productRefGroup = 2A077D952F14971E00F530AE /* Products */;
 			projectDirPath = "";
-			projectReferences = (
-				{
-					ProductGroup = 2A077DCE2F14980000F530AE /* Products */;
-					ProjectRef = 2A077DCC2F14980000F530AE /* GiftyTask.xcodeproj */;
-				},
-			);
 			projectRoot = "";
 			targets = (
 				2A077D932F14971E00F530AE /* GiftyTask */,
@@ -339,8 +331,8 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				2A077DE72F14980000F530AE /* Preview Assets.xcassets in Resources */,
-				2A077DE82F14980000F530AE /* Assets.xcassets in Resources */,
+				2A7051632F165BA6000F5A24 /* Preview Assets.xcassets in Resources */,
+				2A7051692F1B1787000F5A24 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -367,22 +359,21 @@
 			files = (
 				2A077DF82F14980000F530AE /* ActivityData.swift in Sources */,
 				2A077DF12F14980000F530AE /* PreviewContainer.swift in Sources */,
-				2A077DEB2F14980000F530AE /* GiftyTaskTests.swift in Sources */,
-				2A077DED2F14980000F530AE /* GiftyTaskUITestsLaunchTests.swift in Sources */,
 				2A077DF92F14980000F530AE /* Epic.swift in Sources */,
 				2A077DF52F14980000F530AE /* GiftListView.swift in Sources */,
 				2A077DF62F14980000F530AE /* TaskCardView.swift in Sources */,
-				2A077DEC2F14980000F530AE /* GiftyTaskUITests.swift in Sources */,
+				2A7051682F165BB3000F5A24 /* ContentView.swift in Sources */,
 				2A077DF22F14980000F530AE /* ActivityRingView.swift in Sources */,
 				2A077DFC2F14980000F530AE /* User.swift in Sources */,
 				2A077DF42F14980000F530AE /* GiftCardView.swift in Sources */,
 				2A077DFA2F14980000F530AE /* Gift.swift in Sources */,
+				2A7051652F165BA6000F5A24 /* GiftyTaskApp.swift in Sources */,
 				2A077DF02F14980000F530AE /* HapticManager.swift in Sources */,
 				2A077DF72F14980000F530AE /* TaskListView.swift in Sources */,
 				2A077DEF2F14980000F530AE /* GlassmorphismModifier.swift in Sources */,
 				2A077DF32F14980000F530AE /* DashboardView.swift in Sources */,
 				2A077DFB2F14980000F530AE /* Task.swift in Sources */,
-				2A077DE92F14980000F530AE /* ContentView.swift in Sources */,
+				2AC0255B2F2377AD00195B8F /* TaskViewModel.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -545,7 +536,7 @@
 				DEVELOPMENT_ASSET_PATHS = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = GiftyTask/Info.plist;
+				INFOPLIST_FILE = "";
 				INFOPLIST_KEY_LSApplicationCategoryType = "";
 				INFOPLIST_KEY_NSCalendarsUsageDescription = "タスク完了の写真証拠を撮影するためにカメラへのアクセスが必要です";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -576,7 +567,7 @@
 				DEVELOPMENT_ASSET_PATHS = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = GiftyTask/Info.plist;
+				INFOPLIST_FILE = "";
 				INFOPLIST_KEY_LSApplicationCategoryType = "";
 				INFOPLIST_KEY_NSCalendarsUsageDescription = "タスク完了の写真証拠を撮影するためにカメラへのアクセスが必要です";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
