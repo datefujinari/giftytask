@@ -30,6 +30,12 @@ struct DashboardView: View {
                     StreakCardView(streakData: activityViewModel.streakData)
                         .padding(.horizontal)
                     
+                    // ヒートマップ
+                    if !activityViewModel.heatmapData.isEmpty {
+                        HeatmapCardView(heatmapData: activityViewModel.heatmapData)
+                            .padding(.horizontal)
+                    }
+                    
                     // 今日のタスク
                     VStack(alignment: .leading, spacing: 16) {
                         HStack {
@@ -75,6 +81,9 @@ struct DashboardView: View {
                                                         
                                                         // アクティビティリングを更新
                                                         updateActivityRing()
+                                                        
+                                                        // ヒートマップを再生成
+                                                        activityViewModel.generateHeatmapData()
                                                     } catch {
                                                         print("❌ エラー: \(error.localizedDescription)")
                                                     }
@@ -154,7 +163,97 @@ struct DashboardView: View {
     }
 }
 
-// ... existing code ...
+
+// MARK: - Heatmap Card View
+struct HeatmapCardView: View {
+    let heatmapData: [HeatmapData]
+    
+    // 過去12週間（84日）のデータを表示
+    var displayData: [HeatmapData] {
+        Array(heatmapData.suffix(84))
+    }
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("アクティビティヒートマップ")
+                .font(.system(size: 22, weight: .bold))
+            
+            // ヒートマップグリッド
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 4), count: 7), spacing: 4) {
+                ForEach(displayData, id: \.date) { data in
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(Color(hex: data.colorHex))
+                        .frame(width: 12, height: 12)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 3)
+                                .stroke(Color.secondary.opacity(0.2), lineWidth: 0.5)
+                        )
+                }
+            }
+            
+            // 凡例
+            HStack {
+                Text("少ない")
+                    .font(.system(size: 10))
+                    .foregroundColor(.secondary)
+                
+                HStack(spacing: 4) {
+                    ForEach(0..<5) { intensity in
+                        RoundedRectangle(cornerRadius: 2)
+                            .fill(Color(hex: intensityToColor(intensity)))
+                            .frame(width: 10, height: 10)
+                    }
+                }
+                
+                Text("多い")
+                    .font(.system(size: 10))
+                    .foregroundColor(.secondary)
+            }
+        }
+        .padding(20)
+        .glassmorphism(cornerRadius: 20)
+    }
+    
+    private func intensityToColor(_ intensity: Int) -> String {
+        switch intensity {
+        case 0: return "#EBEDF0"
+        case 1: return "#C6E48B"
+        case 2: return "#7BC96F"
+        case 3: return "#239A3B"
+        case 4: return "#196127"
+        default: return "#EBEDF0"
+        }
+    }
+}
+
+// MARK: - Color Extension
+extension Color {
+    init(hex: String) {
+        let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
+        var int: UInt64 = 0
+        Scanner(string: hex).scanHexInt64(&int)
+        let a, r, g, b: UInt64
+        switch hex.count {
+        case 3: // RGB (12-bit)
+            (a, r, g, b) = (255, (int >> 8) * 17, (int >> 4 & 0xF) * 17, (int & 0xF) * 17)
+        case 6: // RGB (24-bit)
+            (a, r, g, b) = (255, int >> 16, int >> 8 & 0xFF, int & 0xFF)
+        case 8: // ARGB (32-bit)
+            (a, r, g, b) = (int >> 24, int >> 16 & 0xFF, int >> 8 & 0xFF, int & 0xFF)
+        default:
+            (a, r, g, b) = (255, 0, 0, 0)
+        }
+        self.init(
+            .sRGB,
+            red: Double(r) / 255,
+            green: Double(g) / 255,
+            blue: Double(b) / 255,
+            opacity: Double(a) / 255
+        )
+    }
+}
+    
+
 // MARK: - User Info Card
 struct UserInfoCard: View {
     let user: User

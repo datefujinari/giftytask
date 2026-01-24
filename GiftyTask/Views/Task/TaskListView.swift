@@ -47,7 +47,10 @@ struct TaskListView: View {
                             ForEach(taskViewModel.filteredTasks) { task in
                                 TaskCardView(
                                     task: Binding(
-                                        get: { taskViewModel.getTask(by: task.id) ?? task },
+                                        get: {
+                                            // 常に最新のタスクを取得
+                                            taskViewModel.tasks.first(where: { $0.id == task.id }) ?? task
+                                        },
                                         set: { updatedTask in
                                             taskViewModel.updateTask(updatedTask)
                                         }
