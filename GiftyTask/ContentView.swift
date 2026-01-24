@@ -2,12 +2,16 @@ import SwiftUI
 
 // MARK: - Content View (メインタブビュー)
 struct ContentView: View {
+    @StateObject private var taskViewModel = TaskViewModel()
+    @StateObject private var activityViewModel = ActivityViewModel()
     @State private var selectedTab = 0
     
     var body: some View {
         TabView(selection: $selectedTab) {
             // ダッシュボード
             DashboardView()
+                .environmentObject(taskViewModel)
+                .environmentObject(activityViewModel)
                 .tabItem {
                     Label("ダッシュボード", systemImage: "house.fill")
                 }
@@ -15,6 +19,8 @@ struct ContentView: View {
             
             // タスク一覧
             TaskListView()
+                .environmentObject(taskViewModel)
+                .environmentObject(activityViewModel)
                 .tabItem {
                     Label("タスク", systemImage: "checklist")
                 }
@@ -22,6 +28,8 @@ struct ContentView: View {
             
             // ギフトBOX
             GiftListView()
+                .environmentObject(taskViewModel)
+                .environmentObject(activityViewModel)
                 .tabItem {
                     Label("ギフトBOX", systemImage: "gift.fill")
                 }

@@ -2,10 +2,9 @@ import SwiftUI
 
 // MARK: - Dashboard View
 struct DashboardView: View {
+    @EnvironmentObject var taskViewModel: TaskViewModel
+    @EnvironmentObject var activityViewModel: ActivityViewModel
     @State private var user: User = PreviewContainer.mockUser
-    @State private var todayTasks: [Task] = PreviewContainer.todayTasks()
-    @State private var ringData: ActivityRingData = PreviewContainer.mockActivityRingData
-    @State private var streakData: StreakData = PreviewContainer.mockStreakData
     
     var body: some View {
         NavigationView {
@@ -18,17 +17,17 @@ struct DashboardView: View {
                     
                     // アクティビティリング
                     ActivityRingCardView(
-                        ringData: ringData,
-                        completedTasks: todayTasks.filter { $0.status == .completed }.count,
-                        goalTasks: 5,
-                        epicProgress: 0.6,
-                        activeDays: 17,
-                        totalDays: 20
+                        ringData: activityViewModel.activityRingData,
+                        completedTasks: taskViewModel.todayTasks.filter { $0.status == .completed }.count,
+                        goalTasks: activityViewModel.dailyGoal,
+                        epicProgress: calculateEpicProgress(),
+                        activeDays: activityViewModel.calculateActiveDays(),
+                        totalDays: activityViewModel.activeDaysPeriod
                     )
                     .padding(.horizontal)
                     
                     // ストリーク情報
-                    StreakCardView(streakData: streakData)
+                    StreakCardView(streakData: activityViewModel.streakData)
                         .padding(.horizontal)
                     
                     // 今日のタスク
@@ -39,13 +38,13 @@ struct DashboardView: View {
                             
                             Spacer()
                             
-                            Text("\(todayTasks.filter { $0.status == .completed }.count)/\(todayTasks.count)")
+                            Text("\(taskViewModel.todayTasks.filter { $0.status == .completed }.count)/\(taskViewModel.todayTasks.count)")
                                 .font(.system(size: 16, weight: .semibold))
                                 .foregroundColor(.secondary)
                         }
                         .padding(.horizontal)
                         
-                        if todayTasks.isEmpty {
+                        if taskViewModel.todayTasks.isEmpty {
                             EmptyStateView(
                                 icon: "checkmark.circle.fill",
                                 title: "今日のタスクはありません",
@@ -55,17 +54,31 @@ struct DashboardView: View {
                         } else {
                             ScrollView(.horizontal, showsIndicators: false) {
                                 HStack(spacing: 16) {
-                                    ForEach(todayTasks.prefix(5)) { task in
+                                    ForEach(taskViewModel.todayTasks.prefix(5).indices, id: \.self) { index in
                                         TaskCardView(
-                                            task: task,
+                                            task: Binding(
+                                                get: { taskViewModel.todayTasks[index] },
+                                                set: { taskViewModel.updateTask($0) }
+                                            ),
                                             onComplete: { completedTask, photo in
-                                                if let index = todayTasks.firstIndex(where: { $0.id == completedTask.id }) {
-                                                    todayTasks[index] = completedTask
+                                                // TaskViewModelでタスクを完了
+                                                _Concurrency.Task { @MainActor in
+                                                    do {
+                                                        let photoURL = photo != nil ? "photo_\(completedTask.id)" : nil
+                                                        let result = try await taskViewModel.completeTask(completedTask, photoURL: photoURL)
+                                                        
+                                                        // ActivityViewModelでタスク完了を記録
+                                                        activityViewModel.recordTaskCompletion(
+                                                            xpGained: result.xpGained,
+                                                            totalTasksCount: taskViewModel.todayTasks.count
+                                                        )
+                                                        
+                                                        // アクティビティリングを更新
+                                                        updateActivityRing()
+                                                    } catch {
+                                                        print("❌ エラー: \(error.localizedDescription)")
+                                                    }
                                                 }
-                                                HapticManager.shared.taskCompleted()
-                                                
-                                                // リングデータを更新
-                                                updateRingData()
                                             }
                                         )
                                         .frame(width: 320)
@@ -101,15 +114,47 @@ struct DashboardView: View {
                 )
             )
         }
+        .task {
+            // ビューが表示されたときにデータを読み込む
+            await taskViewModel.loadTasks()
+            await activityViewModel.loadActivityData()
+            
+            // 初期のリングデータを計算
+            updateActivityRing()
+        }
     }
     
-    private func updateRingData() {
-        let completedCount = todayTasks.filter { $0.status == .completed }.count
-        let goalCount = 5
-        ringData.move = min(Double(completedCount) / Double(goalCount), 1.0)
+    /// エピックの平均進捗率を計算
+    private func calculateEpicProgress() -> Double {
+        let epics = PreviewContainer.mockEpics.prefix(2)
+        guard !epics.isEmpty else { return 0.0 }
+        
+        var totalProgress = 0.0
+        for epic in epics {
+            let tasks = taskViewModel.getTasks(for: epic.id)
+            guard !tasks.isEmpty else { continue }
+            let completedCount = tasks.filter { $0.status == .completed }.count
+            totalProgress += Double(completedCount) / Double(tasks.count)
+        }
+        
+        return totalProgress / Double(epics.count)
+    }
+    
+    /// アクティビティリングデータを更新
+    private func updateActivityRing() {
+        let completedCount = taskViewModel.todayTasks.filter { $0.status == .completed }.count
+        let totalCount = taskViewModel.todayTasks.count
+        let epicProgress = calculateEpicProgress()
+        
+        activityViewModel.calculateActivityRing(
+            completedTasksCount: completedCount,
+            totalTasksCount: totalCount,
+            epicProgress: epicProgress
+        )
     }
 }
 
+// ... existing code ...
 // MARK: - User Info Card
 struct UserInfoCard: View {
     let user: User

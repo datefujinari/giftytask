@@ -2,13 +2,14 @@ import SwiftUI
 
 // MARK: - Task List View
 struct TaskListView: View {
-    @StateObject private var viewModel = TaskViewModel()
+    @EnvironmentObject var taskViewModel: TaskViewModel
+    @EnvironmentObject var activityViewModel: ActivityViewModel
     
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
                 // 検索バー
-                SearchBar(text: $viewModel.searchText)
+                SearchBar(text: $taskViewModel.searchText)
                     .padding(.horizontal)
                     .padding(.top, 8)
                 
@@ -18,9 +19,9 @@ struct TaskListView: View {
                         ForEach(TaskViewModel.TaskFilter.allCases, id: \.self) { filter in
                             FilterButton(
                                 title: filter.rawValue,
-                                isSelected: viewModel.selectedFilter == filter
+                                isSelected: taskViewModel.selectedFilter == filter
                             ) {
-                                viewModel.selectedFilter = filter
+                                taskViewModel.selectedFilter = filter
                             }
                         }
                     }
@@ -29,32 +30,59 @@ struct TaskListView: View {
                 }
                 
                 // ローディング表示
-                if viewModel.isLoading {
+                if taskViewModel.isLoading {
                     ProgressView()
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
                 // タスク一覧
-                else if viewModel.filteredTasks.isEmpty {
+                else if taskViewModel.filteredTasks.isEmpty {
                     EmptyStateView(
                         icon: "checklist",
                         title: "タスクがありません",
-                        message: viewModel.selectedFilter == .completed ? "完了したタスクはまだありません" : "新しいタスクを作成しましょう"
+                        message: taskViewModel.selectedFilter == .completed ? "完了したタスクはまだありません" : "新しいタスクを作成しましょう"
                     )
                 } else {
                     ScrollView {
                         LazyVStack(spacing: 16) {
-                            ForEach(viewModel.filteredTasks) { task in
+                            ForEach(taskViewModel.filteredTasks) { task in
                                 TaskCardView(
-                                    task: task,
+                                    task: Binding(
+                                        get: { taskViewModel.getTask(by: task.id) ?? task },
+                                        set: { updatedTask in
+                                            taskViewModel.updateTask(updatedTask)
+                                        }
+                                    ),
                                     onComplete: { completedTask, photo in
+                                        // 既に完了済みの場合は処理をスキップ
+                                        guard completedTask.status != .completed else {
+                                            print("⚠️ 警告: このタスクは既に完了しています")
+                                            return
+                                        }
+                                        
                                         // TaskViewModelを使ってタスクを完了
-                                        _Concurrency.Task {
+                                        _Concurrency.Task { @MainActor in
                                             do {
                                                 let photoURL = photo != nil ? "photo_\(completedTask.id)" : nil
-                                                let result = try await viewModel.completeTask(completedTask, photoURL: photoURL)
-                                                print("タスク完了: \(result.completedTask.title), 獲得XP: \(result.xpGained)")
+                                                let result = try await taskViewModel.completeTask(completedTask, photoURL: photoURL)
+                                                print("✅ タスク完了: \(result.completedTask.title), 獲得XP: \(result.xpGained)")
+                                                
+                                                // ActivityViewModelでタスク完了を記録
+                                                activityViewModel.recordTaskCompletion(
+                                                    xpGained: result.xpGained,
+                                                    totalTasksCount: taskViewModel.todayTasks.count
+                                                )
+                                                
+                                                // アクティビティリングを更新
+                                                let completedCount = taskViewModel.todayTasks.filter { $0.status == .completed }.count
+                                                let epicProgress = 0.6 // TODO: 実際のエピック進捗を計算
+                                                activityViewModel.calculateActivityRing(
+                                                    completedTasksCount: completedCount,
+                                                    totalTasksCount: taskViewModel.todayTasks.count,
+                                                    epicProgress: epicProgress
+                                                )
                                             } catch {
-                                                print("エラー: \(error.localizedDescription)")
+                                                print("❌ エラー: \(error.localizedDescription)")
+                                                taskViewModel.errorMessage = error.localizedDescription
                                             }
                                         }
                                     }
@@ -76,13 +104,13 @@ struct TaskListView: View {
             )
             .task {
                 // ビューが表示されたときにタスクを読み込む
-                await viewModel.loadTasks()
+                await taskViewModel.loadTasks()
             }
         }
     }
 }
 
-
+// ... existing code ...
 // MARK: - Search Bar
 struct SearchBar: View {
     @Binding var text: String

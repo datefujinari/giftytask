@@ -3,18 +3,19 @@ import PhotosUI
 
 // MARK: - Task Card View (Glassmorphism + Long Press Camera)
 struct TaskCardView: View {
-    @StateObject private var viewModel: TaskCardViewModel
+    @Binding var task: Task  // @StateObjectから@Bindingに変更
     @State private var isPressed = false
     @State private var showCamera = false
     @State private var showPhotoPicker = false
     @State private var selectedPhoto: UIImage?
-    
-    init(task: Task, onComplete: @escaping (Task, UIImage?) -> Void) {
-        _viewModel = StateObject(wrappedValue: TaskCardViewModel(task: task))
-        self.onComplete = onComplete
-    }
+    @State private var isProcessing = false  // TaskCardViewModelから移動
     
     let onComplete: (Task, UIImage?) -> Void
+    
+    init(task: Binding<Task>, onComplete: @escaping (Task, UIImage?) -> Void) {
+        _task = task
+        self.onComplete = onComplete
+    }
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -39,7 +40,7 @@ struct TaskCardView: View {
     // MARK: - Header View
     private var headerView: some View {
         HStack {
-            Text(viewModel.task.title)
+            Text(task.title)  // viewModel.taskからtaskに変更
                 .font(.system(size: 18, weight: .bold))
                 .foregroundColor(.primary)
                 .lineLimit(2)
@@ -47,7 +48,7 @@ struct TaskCardView: View {
             Spacer()
             
             Circle()
-                .fill(priorityColor(viewModel.task.priority))
+                .fill(priorityColor(task.priority))  // viewModel.taskからtaskに変更
                 .frame(width: 12, height: 12)
         }
     }
@@ -55,7 +56,7 @@ struct TaskCardView: View {
     // MARK: - Description View
     @ViewBuilder
     private var descriptionView: some View {
-        if let description = viewModel.task.description, !description.isEmpty {
+        if let description = task.description, !description.isEmpty {  // viewModel.taskからtaskに変更
             Text(description)
                 .font(.system(size: 14))
                 .foregroundColor(.secondary)
@@ -76,7 +77,7 @@ struct TaskCardView: View {
     // MARK: - Due Date Label
     @ViewBuilder
     private var dueDateLabel: some View {
-        if let dueDate = viewModel.task.dueDate {
+        if let dueDate = task.dueDate {  // viewModel.taskからtaskに変更
             Label {
                 Text(dueDate, style: .date)
                     .font(.system(size: 12))
@@ -91,10 +92,10 @@ struct TaskCardView: View {
     // MARK: - Verification Mode Label
     private var verificationModeLabel: some View {
         Label {
-            Text(viewModel.task.verificationMode == .photoEvidence ? "写真" : "申告")
+            Text(task.verificationMode == .photoEvidence ? "写真" : "申告")  // viewModel.taskからtaskに変更
                 .font(.system(size: 12))
         } icon: {
-            Image(systemName: viewModel.task.verificationMode == .photoEvidence ? "camera.fill" : "hand.raised.fill")
+            Image(systemName: task.verificationMode == .photoEvidence ? "camera.fill" : "hand.raised.fill")  // viewModel.taskからtaskに変更
                 .font(.system(size: 12))
         }
         .foregroundColor(.secondary)
@@ -103,7 +104,7 @@ struct TaskCardView: View {
     // MARK: - XP Reward Label
     private var xpRewardLabel: some View {
         Label {
-            Text("\(viewModel.task.xpReward) XP")
+            Text("\(task.xpReward) XP")  // viewModel.taskからtaskに変更
                 .font(.system(size: 12, weight: .semibold))
         } icon: {
             Image(systemName: "star.fill")
@@ -115,13 +116,14 @@ struct TaskCardView: View {
     // MARK: - Complete Button
     private var completeButton: some View {
         Button(action: {
-            if viewModel.task.verificationMode == .selfDeclaration {
+            // 自己申告モードの場合のみ、タップで完了
+            if task.verificationMode == .selfDeclaration && task.status != .completed {  // viewModel.taskからtaskに変更
                 completeTask(with: nil)
             }
         }) {
             HStack {
                 Spacer()
-                Text(viewModel.task.status == .completed ? "完了済み" : "完了")
+                Text(task.status == .completed ? "完了済み" : "完了")  // viewModel.taskからtaskに変更
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundColor(.white)
                 Spacer()
@@ -130,11 +132,12 @@ struct TaskCardView: View {
             .background(buttonBackground)
             .cornerRadius(12)
         }
-        .disabled(viewModel.task.status == .completed)
+        .disabled(task.status == .completed)  // viewModel.taskからtaskに変更
         .simultaneousGesture(
             LongPressGesture(minimumDuration: 0.5)
                 .onEnded { _ in
-                    if viewModel.task.verificationMode == .photoEvidence {
+                    // 長押し時の処理（写真証拠モード）
+                    if task.verificationMode == .photoEvidence && task.status != .completed {  // viewModel.taskからtaskに変更
                         triggerCamera()
                     }
                 }
@@ -146,7 +149,7 @@ struct TaskCardView: View {
     // MARK: - Button Background
     @ViewBuilder
     private var buttonBackground: some View {
-        if viewModel.task.status == .completed {
+        if task.status == .completed {  // viewModel.taskからtaskに変更
             Color.green
         } else {
             LinearGradient(
@@ -160,7 +163,7 @@ struct TaskCardView: View {
     // MARK: - Loading Overlay
     @ViewBuilder
     private var loadingOverlay: some View {
-        if viewModel.isProcessing {
+        if isProcessing {  // viewModel.isProcessingからisProcessingに変更
             Color.black.opacity(0.3)
                 .cornerRadius(20)
             ProgressView()
@@ -186,33 +189,13 @@ struct TaskCardView: View {
     }
     
     private func completeTask(with photo: UIImage?) {
-        viewModel.completeTask { completedTask in
-            onComplete(completedTask, photo)
-        }
+        // TaskViewModelでの処理はTaskListViewのonCompleteで行われる
+        // ここでは直接onCompleteを呼び出す
+        onComplete(task, photo)
     }
 }
 
-// MARK: - Task Card ViewModel
-class TaskCardViewModel: ObservableObject {
-    @Published var task: Task
-    @Published var isProcessing = false
-    
-    init(task: Task) {
-        self.task = task
-    }
-    
-    func completeTask(completion: @escaping (Task) -> Void) {
-        isProcessing = true
-        
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            var updatedTask = self.task
-            updatedTask.complete()
-            self.task = updatedTask
-            self.isProcessing = false
-            completion(updatedTask)
-        }
-    }
-}
+// TaskCardViewModelは削除
 
 // MARK: - Camera View (簡易版)
 struct CameraView: UIViewControllerRepresentable {
@@ -222,8 +205,17 @@ struct CameraView: UIViewControllerRepresentable {
     func makeUIViewController(context: Context) -> UIImagePickerController {
         let picker = UIImagePickerController()
         picker.delegate = context.coordinator
-        picker.sourceType = .camera
         picker.allowsEditing = true
+        
+        // カメラが利用可能かチェック
+        if UIImagePickerController.isSourceTypeAvailable(.camera) {
+            picker.sourceType = .camera
+        } else {
+            // シミュレーターなど、カメラが利用できない場合は写真ライブラリを使用
+            picker.sourceType = .photoLibrary
+            print("⚠️ カメラが利用できないため、写真ライブラリを開きます")
+        }
+        
         return picker
     }
     
@@ -263,7 +255,7 @@ struct CameraView: UIViewControllerRepresentable {
     ScrollView {
         VStack(spacing: 20) {
             TaskCardView(
-                task: PreviewContainer.mockTasks[0],
+                task: .constant(PreviewContainer.mockTasks[0]),
                 onComplete: { task, photo in
                     print("Task completed: \(task.title)")
                 }
@@ -271,7 +263,7 @@ struct CameraView: UIViewControllerRepresentable {
             .padding(.horizontal)
             
             TaskCardView(
-                task: PreviewContainer.mockTasks[1],
+                task: .constant(PreviewContainer.mockTasks[1]),
                 onComplete: { task, photo in
                     print("Task completed: \(task.title)")
                 }
@@ -279,7 +271,7 @@ struct CameraView: UIViewControllerRepresentable {
             .padding(.horizontal)
             
             TaskCardView(
-                task: PreviewContainer.mockTasks[2],
+                task: .constant(PreviewContainer.mockTasks[2]),
                 onComplete: { task, photo in
                     print("Task completed: \(task.title)")
                 }

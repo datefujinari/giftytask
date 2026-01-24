@@ -26,6 +26,7 @@
 		2A7051682F165BB3000F5A24 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A7051672F165BB3000F5A24 /* ContentView.swift */; };
 		2A7051692F1B1787000F5A24 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 2A70515F2F165BA6000F5A24 /* Assets.xcassets */; };
 		2AC0255B2F2377AD00195B8F /* TaskViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AC0255A2F2377AD00195B8F /* TaskViewModel.swift */; };
+		2AD530362F2458D30053F87D /* ActivityViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AD530352F2458D30053F87D /* ActivityViewModel.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -72,6 +73,7 @@
 		2A7051612F165BA6000F5A24 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		2A7051672F165BB3000F5A24 /* ContentView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		2AC0255A2F2377AD00195B8F /* TaskViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskViewModel.swift; sourceTree = "<group>"; };
+		2AD530352F2458D30053F87D /* ActivityViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityViewModel.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -223,6 +225,7 @@
 			isa = PBXGroup;
 			children = (
 				2AC0255A2F2377AD00195B8F /* TaskViewModel.swift */,
+				2AD530352F2458D30053F87D /* ActivityViewModel.swift */,
 			);
 			path = ViewModels;
 			sourceTree = "<group>";
@@ -374,6 +377,7 @@
 				2A077DF32F14980000F530AE /* DashboardView.swift in Sources */,
 				2A077DFB2F14980000F530AE /* Task.swift in Sources */,
 				2AC0255B2F2377AD00195B8F /* TaskViewModel.swift in Sources */,
+				2AD530362F2458D30053F87D /* ActivityViewModel.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -534,11 +538,13 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "";
+				DEVELOPMENT_TEAM = DHTJBVPYQB;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "";
 				INFOPLIST_KEY_LSApplicationCategoryType = "";
 				INFOPLIST_KEY_NSCalendarsUsageDescription = "タスク完了の写真証拠を撮影するためにカメラへのアクセスが必要です";
+				INFOPLIST_KEY_NSCameraUsageDescription = "タスク完了の証拠写真を撮影するためにカメラを使用します。";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -565,11 +571,13 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "";
+				DEVELOPMENT_TEAM = DHTJBVPYQB;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "";
 				INFOPLIST_KEY_LSApplicationCategoryType = "";
 				INFOPLIST_KEY_NSCalendarsUsageDescription = "タスク完了の写真証拠を撮影するためにカメラへのアクセスが必要です";
+				INFOPLIST_KEY_NSCameraUsageDescription = "タスク完了の証拠写真を撮影するためにカメラを使用します。";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
