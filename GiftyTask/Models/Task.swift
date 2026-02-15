@@ -15,6 +15,8 @@ struct Task: Identifiable, Codable, Hashable {
     var createdAt: Date
     var updatedAt: Date
     var xpReward: Int // 完了時のXP報酬
+    var rewardDisplayName: String? // 達成時に解禁したい報酬名（Giftの内容）
+    var isRoutine: Bool // 毎日ルーチンタスクかどうか
     
     // 初期化
     init(
@@ -30,7 +32,9 @@ struct Task: Identifiable, Codable, Hashable {
         photoEvidenceURL: String? = nil,
         createdAt: Date = Date(),
         updatedAt: Date = Date(),
-        xpReward: Int = 10
+        xpReward: Int = 10,
+        rewardDisplayName: String? = nil,
+        isRoutine: Bool = false
     ) {
         self.id = id
         self.title = title
@@ -45,6 +49,8 @@ struct Task: Identifiable, Codable, Hashable {
         self.createdAt = createdAt
         self.updatedAt = updatedAt
         self.xpReward = xpReward
+        self.rewardDisplayName = rewardDisplayName
+        self.isRoutine = isRoutine
     }
     
     // 完了処理

@@ -6,8 +6,22 @@ struct GiftCardView: View {
     var onUnlock: (() -> Void)? = nil
     
     @State private var isUnlocking = false
+    @State private var didPlayUnlockFeedback = false
     
     var body: some View {
+        cardContent
+            .animation(.spring(response: 0.45, dampingFraction: 0.75), value: gift.status)
+            .onChange(of: gift.status) { oldValue, newValue in
+                if oldValue == .locked && newValue == .unlocked {
+                    if !didPlayUnlockFeedback {
+                        HapticManager.shared.giftUnlocked()
+                        didPlayUnlockFeedback = true
+                    }
+                }
+            }
+    }
+    
+    private var cardContent: some View {
         VStack(alignment: .leading, spacing: 16) {
             // ヘッダー
             HStack {
@@ -52,10 +66,11 @@ struct GiftCardView: View {
                 
                 Spacer()
                 
-                // ステータス
+                // ステータス（ロック解除で「利用する」に切り替わり＋パリンと割れるアニメーション）
                 if gift.status == .unlocked {
-                    if let giftURL = gift.giftURL {
-                        Link(destination: URL(string: giftURL)!) {
+                    let urlString = gift.giftURL ?? Gift.defaultGiftURL
+                    if let url = URL(string: urlString) {
+                        Link(destination: url) {
                             HStack(spacing: 8) {
                                 Text("利用する")
                                     .font(.system(size: 14, weight: .semibold))
@@ -74,6 +89,7 @@ struct GiftCardView: View {
                             )
                             .cornerRadius(12)
                         }
+                        .transition(.scale(scale: 0.9).combined(with: .opacity))
                     }
                 } else {
                     // ロック済み表示

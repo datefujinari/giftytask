@@ -4,32 +4,31 @@ import SwiftUI
 struct ContentView: View {
     @StateObject private var taskViewModel = TaskViewModel()
     @StateObject private var activityViewModel = ActivityViewModel()
+    @StateObject private var giftViewModel = GiftViewModel()
     @State private var selectedTab = 0
     
     var body: some View {
         TabView(selection: $selectedTab) {
-            // ダッシュボード
             DashboardView()
                 .environmentObject(taskViewModel)
                 .environmentObject(activityViewModel)
+                .environmentObject(giftViewModel)
                 .tabItem {
                     Label("ダッシュボード", systemImage: "house.fill")
                 }
                 .tag(0)
             
-            // タスク一覧
             TaskListView()
                 .environmentObject(taskViewModel)
                 .environmentObject(activityViewModel)
+                .environmentObject(giftViewModel)
                 .tabItem {
                     Label("タスク", systemImage: "checklist")
                 }
                 .tag(1)
             
-            // ギフトBOX
             GiftListView()
-                .environmentObject(taskViewModel)
-                .environmentObject(activityViewModel)
+                .environmentObject(giftViewModel)
                 .tabItem {
                     Label("ギフトBOX", systemImage: "gift.fill")
                 }

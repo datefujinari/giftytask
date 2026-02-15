@@ -4,14 +4,16 @@ import SwiftUI
 struct DashboardView: View {
     @EnvironmentObject var taskViewModel: TaskViewModel
     @EnvironmentObject var activityViewModel: ActivityViewModel
-    @State private var user: User = PreviewContainer.mockUser
+    @EnvironmentObject var giftViewModel: GiftViewModel
+    @State private var showAddTask = false
     
     var body: some View {
         NavigationView {
+            ZStack(alignment: .bottomTrailing) {
             ScrollView {
                 VStack(spacing: 24) {
-                    // ユーザー情報カード
-                    UserInfoCard(user: user)
+                    // ユーザー情報カード（XP・レベルは ActivityViewModel.currentUser でリアルタイム更新）
+                    UserInfoCard(user: activityViewModel.currentUser)
                         .padding(.horizontal)
                         .padding(.top)
                     
@@ -67,23 +69,33 @@ struct DashboardView: View {
                                                 set: { taskViewModel.updateTask($0) }
                                             ),
                                             onComplete: { completedTask, photo in
-                                                // TaskViewModelでタスクを完了
+                                                // タスク完了: ViewModel完了 → XP加算・レベルアップ → リング更新 → ハプティック
                                                 _Concurrency.Task { @MainActor in
                                                     do {
                                                         let photoURL = photo != nil ? "photo_\(completedTask.id)" : nil
                                                         let result = try await taskViewModel.completeTask(completedTask, photoURL: photoURL)
                                                         
-                                                        // ActivityViewModelでタスク完了を記録
+                                                        // アクティビティ記録（完了数・XP・ストリーク）
                                                         activityViewModel.recordTaskCompletion(
                                                             xpGained: result.xpGained,
                                                             totalTasksCount: taskViewModel.todayTasks.count
                                                         )
                                                         
-                                                        // アクティビティリングを更新
-                                                        updateActivityRing()
+                                                        // XP加算し、レベルアップしたら専用ハプティック
+                                                        let leveledUp = activityViewModel.addXPToUser(result.xpGained)
+                                                        if leveledUp {
+                                                            HapticManager.shared.levelUp()
+                                                        }
                                                         
-                                                        // ヒートマップを再生成
+                                                        // アクティビティリングをリアルタイム更新
+                                                        updateActivityRing()
                                                         activityViewModel.generateHeatmapData()
+                                                        
+                                                        giftViewModel.checkAndUnlockGifts(
+                                                            completedTask: result.completedTask,
+                                                            taskViewModel: taskViewModel,
+                                                            activityViewModel: activityViewModel
+                                                        )
                                                     } catch {
                                                         print("❌ エラー: \(error.localizedDescription)")
                                                     }
@@ -122,6 +134,19 @@ struct DashboardView: View {
                     endPoint: .bottomTrailing
                 )
             )
+                
+                AddTaskFAB {
+                    HapticManager.shared.mediumImpact()
+                    showAddTask = true
+                }
+                .padding(.trailing, 24)
+                .padding(.bottom, 24)
+            }
+            .sheet(isPresented: $showAddTask) {
+                AddTaskView(isPresented: $showAddTask)
+                    .environmentObject(taskViewModel)
+                    .environmentObject(activityViewModel)
+            }
         }
         .task {
             // ビューが表示されたときにデータを読み込む
@@ -296,7 +321,7 @@ struct UserInfoCard: View {
                     Text("\(user.xpToNextLevel) XP")
                         .font(.system(size: 18, weight: .bold))
                     
-                    ProgressView(value: Double(user.totalXP % 100), total: 100)
+                    ProgressView(value: user.currentLevelProgressValue, total: user.currentLevelProgressTotal)
                         .frame(width: 100)
                         .tint(.blue)
                 }
@@ -407,5 +432,8 @@ struct EpicProgressCard: View {
 // MARK: - Preview
 #Preview {
     DashboardView()
+        .environmentObject(TaskViewModel())
+        .environmentObject(ActivityViewModel())
+        .environmentObject(GiftViewModel())
 }
 

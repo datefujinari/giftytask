@@ -16,6 +16,7 @@
 		2A077DF52F14980000F530AE /* GiftListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A077DDA2F14980000F530AE /* GiftListView.swift */; };
 		2A077DF62F14980000F530AE /* TaskCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A077DDC2F14980000F530AE /* TaskCardView.swift */; };
 		2A077DF72F14980000F530AE /* TaskListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A077DDD2F14980000F530AE /* TaskListView.swift */; };
+		2AE001022F25000100F53AAE /* AddTaskView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AE001012F25000100F53AAE /* AddTaskView.swift */; };
 		2A077DF82F14980000F530AE /* ActivityData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A077DE02F14980000F530AE /* ActivityData.swift */; };
 		2A077DF92F14980000F530AE /* Epic.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A077DE12F14980000F530AE /* Epic.swift */; };
 		2A077DFA2F14980000F530AE /* Gift.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A077DE22F14980000F530AE /* Gift.swift */; };
@@ -27,6 +28,8 @@
 		2A7051692F1B1787000F5A24 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 2A70515F2F165BA6000F5A24 /* Assets.xcassets */; };
 		2AC0255B2F2377AD00195B8F /* TaskViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AC0255A2F2377AD00195B8F /* TaskViewModel.swift */; };
 		2AD530362F2458D30053F87D /* ActivityViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AD530352F2458D30053F87D /* ActivityViewModel.swift */; };
+		2AE002022F25000200F53AAE /* GiftViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AE002012F25000200F53AAE /* GiftViewModel.swift */; };
+		2AE003022F25000300F53AAE /* AddGiftView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AE003012F25000300F53AAE /* AddGiftView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -62,6 +65,7 @@
 		2A077DDA2F14980000F530AE /* GiftListView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = GiftListView.swift; sourceTree = "<group>"; };
 		2A077DDC2F14980000F530AE /* TaskCardView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TaskCardView.swift; sourceTree = "<group>"; };
 		2A077DDD2F14980000F530AE /* TaskListView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TaskListView.swift; sourceTree = "<group>"; };
+		2AE001012F25000100F53AAE /* AddTaskView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AddTaskView.swift; sourceTree = "<group>"; };
 		2A077DE02F14980000F530AE /* ActivityData.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ActivityData.swift; sourceTree = "<group>"; };
 		2A077DE12F14980000F530AE /* Epic.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Epic.swift; sourceTree = "<group>"; };
 		2A077DE22F14980000F530AE /* Gift.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Gift.swift; sourceTree = "<group>"; };
@@ -74,6 +78,8 @@
 		2A7051672F165BB3000F5A24 /* ContentView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		2AC0255A2F2377AD00195B8F /* TaskViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskViewModel.swift; sourceTree = "<group>"; };
 		2AD530352F2458D30053F87D /* ActivityViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityViewModel.swift; sourceTree = "<group>"; };
+		2AE002012F25000200F53AAE /* GiftViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GiftViewModel.swift; sourceTree = "<group>"; };
+		2AE003012F25000300F53AAE /* AddGiftView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddGiftView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -165,6 +171,7 @@
 		2A077DDB2F14980000F530AE /* Gift */ = {
 			isa = PBXGroup;
 			children = (
+				2AE003012F25000300F53AAE /* AddGiftView.swift */,
 				2A077DD92F14980000F530AE /* GiftCardView.swift */,
 				2A077DDA2F14980000F530AE /* GiftListView.swift */,
 			);
@@ -174,6 +181,7 @@
 		2A077DDE2F14980000F530AE /* Task */ = {
 			isa = PBXGroup;
 			children = (
+				2AE001012F25000100F53AAE /* AddTaskView.swift */,
 				2A077DDC2F14980000F530AE /* TaskCardView.swift */,
 				2A077DDD2F14980000F530AE /* TaskListView.swift */,
 			);
@@ -224,8 +232,9 @@
 		2AC025592F23775400195B8F /* ViewModels */ = {
 			isa = PBXGroup;
 			children = (
-				2AC0255A2F2377AD00195B8F /* TaskViewModel.swift */,
 				2AD530352F2458D30053F87D /* ActivityViewModel.swift */,
+				2AE002012F25000200F53AAE /* GiftViewModel.swift */,
+				2AC0255A2F2377AD00195B8F /* TaskViewModel.swift */,
 			);
 			path = ViewModels;
 			sourceTree = "<group>";
@@ -360,7 +369,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				2AE001022F25000100F53AAE /* AddTaskView.swift in Sources */,
+				2AE003022F25000300F53AAE /* AddGiftView.swift in Sources */,
 				2A077DF82F14980000F530AE /* ActivityData.swift in Sources */,
+				2AE002022F25000200F53AAE /* GiftViewModel.swift in Sources */,
 				2A077DF12F14980000F530AE /* PreviewContainer.swift in Sources */,
 				2A077DF92F14980000F530AE /* Epic.swift in Sources */,
 				2A077DF52F14980000F530AE /* GiftListView.swift in Sources */,

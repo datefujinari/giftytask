@@ -3,6 +3,10 @@ import Foundation
 // MARK: - Preview Container (モックデータ)
 struct PreviewContainer {
     
+    /// LINEギフト公式トップURL（「利用する」押下でSafari/ブラウザから開く）
+    /// 本番ではアンロック時に発行された個別ギフトURLを設定可能
+    static let lineGiftOfficialURL = "https://linegift.line.me/"
+    
     // MARK: - Mock User
     static let mockUser = User(
         id: "user-001",
@@ -180,12 +184,12 @@ struct PreviewContainer {
             currency: "JPY"
         ),
         
-        // アンロック済みギフト
+        // アンロック済みギフト（LINEギフト公式へ誘導）
         Gift(
             id: "gift-004",
             title: "セブン-イレブンギフト券 500円",
             description: "初回タスク完了報酬",
-            giftURL: "https://giftee.co/gifts/abc123",
+            giftURL: PreviewContainer.lineGiftOfficialURL,
             status: .unlocked,
             type: .selfReward,
             unlockCondition: UnlockCondition(

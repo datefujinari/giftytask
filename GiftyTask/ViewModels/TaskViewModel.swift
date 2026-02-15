@@ -124,30 +124,32 @@ class TaskViewModel: ObservableObject {
     // MARK: - Task CRUD Operations
     
     /// タスクを作成
-        func createTask(
-            title: String,
-            description: String? = nil,
-            epicId: String? = nil,
-            verificationMode: VerificationMode = .selfDeclaration,
-            priority: TaskPriority = .medium,
-            dueDate: Date? = nil,
-            xpReward: Int = 10
-        ) -> Task {
-            // 引数の順番を Task.swift の init と完全に一致させる
-            let newTask = Task(
-                title: title,
-                description: description,
-                epicId: epicId,
-                status: .pending,
-                verificationMode: verificationMode,
-                priority: priority,
-                dueDate: dueDate,
-                xpReward: xpReward
-            )
-            
-            tasks.append(newTask)
-            return newTask
-        }
+    func createTask(
+        title: String,
+        description: String? = nil,
+        epicId: String? = nil,
+        verificationMode: VerificationMode = .selfDeclaration,
+        priority: TaskPriority = .medium,
+        dueDate: Date? = nil,
+        xpReward: Int = 10,
+        rewardDisplayName: String? = nil,
+        isRoutine: Bool = false
+    ) -> Task {
+        let newTask = Task(
+            title: title,
+            description: description,
+            epicId: epicId,
+            status: .pending,
+            verificationMode: verificationMode,
+            priority: priority,
+            dueDate: dueDate,
+            xpReward: xpReward,
+            rewardDisplayName: rewardDisplayName,
+            isRoutine: isRoutine
+        )
+        tasks.append(newTask)
+        return newTask
+    }
     
     /// タスクを更新
     func updateTask(_ task: Task) {
@@ -287,6 +289,13 @@ class TaskViewModel: ObservableObject {
         
         let completedCount = epicTasks.filter { $0.status == .completed }.count
         return Double(completedCount) / Double(epicTasks.count)
+    }
+    
+    /// 複数エピックの平均進捗率（アクティビティリング用）
+    func averageEpicProgress(epicIds: [String]) -> Double {
+        guard !epicIds.isEmpty else { return 0.0 }
+        let progressSum = epicIds.reduce(0.0) { $0 + calculateEpicProgress(epicId: $1) }
+        return progressSum / Double(epicIds.count)
     }
     
     /// フィルタをリセット

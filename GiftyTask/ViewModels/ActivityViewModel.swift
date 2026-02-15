@@ -9,6 +9,7 @@ class ActivityViewModel: ObservableObject {
     @Published var streakData: StreakData = StreakData()
     @Published var heatmapData: [HeatmapData] = []
     @Published var dailyActivityData: [ActivityData] = []
+    @Published var currentUser: User // XP・レベル管理（タスク完了で更新、ダッシュボードと同期）
     @Published var isLoading = false
     @Published var errorMessage: String?
     
@@ -17,10 +18,21 @@ class ActivityViewModel: ObservableObject {
     var activeDaysPeriod: Int = 20 // アクティブ日数の計算期間（日数）
     
     // MARK: - Initialization
-    init() {
-        // 初期化時にはモックデータのみ設定
-        // 実際のデータ読み込みはビュー側で行う
+    init(currentUser: User = PreviewContainer.mockUser) {
+        self.currentUser = currentUser
         initializeMockData()
+    }
+    
+    // MARK: - XP & Level
+    
+    /// タスク完了で獲得したXPをユーザーに加算し、レベルアップしたかどうかを返す
+    /// - Parameter xp: 加算するXP
+    /// - Returns: レベルアップした場合 true
+    func addXPToUser(_ xp: Int) -> Bool {
+        var user = currentUser
+        let leveledUp = user.addXP(xp)
+        currentUser = user
+        return leveledUp
     }
     // MARK: - Activity Ring Calculation
     

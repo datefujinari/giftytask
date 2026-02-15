@@ -4,10 +4,13 @@ import SwiftUI
 struct TaskListView: View {
     @EnvironmentObject var taskViewModel: TaskViewModel
     @EnvironmentObject var activityViewModel: ActivityViewModel
+    @EnvironmentObject var giftViewModel: GiftViewModel
+    @State private var showAddTask = false
     
     var body: some View {
         NavigationView {
-            VStack(spacing: 0) {
+            ZStack(alignment: .bottomTrailing) {
+                VStack(spacing: 0) {
                 // 検索バー
                 SearchBar(text: $taskViewModel.searchText)
                     .padding(.horizontal)
@@ -56,32 +59,36 @@ struct TaskListView: View {
                                         }
                                     ),
                                     onComplete: { completedTask, photo in
-                                        // 既に完了済みの場合は処理をスキップ
-                                        guard completedTask.status != .completed else {
-                                            print("⚠️ 警告: このタスクは既に完了しています")
-                                            return
-                                        }
+                                        guard completedTask.status != .completed else { return }
                                         
-                                        // TaskViewModelを使ってタスクを完了
                                         _Concurrency.Task { @MainActor in
                                             do {
                                                 let photoURL = photo != nil ? "photo_\(completedTask.id)" : nil
                                                 let result = try await taskViewModel.completeTask(completedTask, photoURL: photoURL)
-                                                print("✅ タスク完了: \(result.completedTask.title), 獲得XP: \(result.xpGained)")
                                                 
-                                                // ActivityViewModelでタスク完了を記録
                                                 activityViewModel.recordTaskCompletion(
                                                     xpGained: result.xpGained,
                                                     totalTasksCount: taskViewModel.todayTasks.count
                                                 )
                                                 
-                                                // アクティビティリングを更新
+                                                let leveledUp = activityViewModel.addXPToUser(result.xpGained)
+                                                if leveledUp {
+                                                    HapticManager.shared.levelUp()
+                                                }
+                                                
                                                 let completedCount = taskViewModel.todayTasks.filter { $0.status == .completed }.count
-                                                let epicProgress = 0.6 // TODO: 実際のエピック進捗を計算
+                                                let epicIds = PreviewContainer.mockEpics.map(\.id)
+                                                let epicProgress = taskViewModel.averageEpicProgress(epicIds: epicIds)
                                                 activityViewModel.calculateActivityRing(
                                                     completedTasksCount: completedCount,
                                                     totalTasksCount: taskViewModel.todayTasks.count,
                                                     epicProgress: epicProgress
+                                                )
+                                                
+                                                giftViewModel.checkAndUnlockGifts(
+                                                    completedTask: result.completedTask,
+                                                    taskViewModel: taskViewModel,
+                                                    activityViewModel: activityViewModel
                                                 )
                                             } catch {
                                                 print("❌ エラー: \(error.localizedDescription)")
@@ -96,18 +103,31 @@ struct TaskListView: View {
                         .padding(.vertical)
                     }
                 }
-            }
-            .navigationTitle("タスク")
-            .background(
-                LinearGradient(
-                    colors: [Color.blue.opacity(0.1), Color.purple.opacity(0.1)],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
+                }
+                .navigationTitle("タスク")
+                .background(
+                    LinearGradient(
+                        colors: [Color.blue.opacity(0.1), Color.purple.opacity(0.1)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
                 )
-            )
-            .task {
-                // ビューが表示されたときにタスクを読み込む
-                await taskViewModel.loadTasks()
+                .task {
+                    await taskViewModel.loadTasks()
+                }
+                
+                // FAB: タスク新規追加
+                AddTaskFAB {
+                    HapticManager.shared.mediumImpact()
+                    showAddTask = true
+                }
+                .padding(.trailing, 24)
+                .padding(.bottom, 24)
+            }
+            .sheet(isPresented: $showAddTask) {
+                AddTaskView(isPresented: $showAddTask)
+                    .environmentObject(taskViewModel)
+                    .environmentObject(activityViewModel)
             }
         }
     }
@@ -198,5 +218,8 @@ struct EmptyStateView: View {
 
 #Preview {
     TaskListView()
+        .environmentObject(TaskViewModel())
+        .environmentObject(ActivityViewModel())
+        .environmentObject(GiftViewModel())
 }
 

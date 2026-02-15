@@ -70,11 +70,11 @@ class HapticManager {
     
     // MARK: - Task-specific Feedback
     
-    /// タスク完了時のフィードバック
+    /// タスク完了時のフィードバック（「パリン」という手応え: UINotificationFeedbackGenerator.success）
     func taskCompleted() {
         mediumImpact()
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            self.successNotification()
+            self.successNotification() // .success で iOS 特有の「パリン」触覚
         }
     }
     

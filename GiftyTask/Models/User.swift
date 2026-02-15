@@ -17,8 +17,17 @@ struct User: Identifiable, Codable, Hashable {
     
     // 計算プロパティ: 次のレベルまでのXP
     var xpToNextLevel: Int {
-        levelXPRequired(for: level + 1) - totalXP
+        max(0, levelXPRequired(for: level + 1) - totalXP)
     }
+    
+    /// 現在レベル内の進捗（プログレスバー用）
+    var currentLevelProgressValue: Double {
+        let start = max(0, (level - 1) * 100)
+        return min(100, Double(max(0, totalXP - start)))
+    }
+    
+    /// 現在レベル内の進捗最大値（常に100）
+    var currentLevelProgressTotal: Double { 100 }
     
     // レベルに必要なXPを計算
     func levelXPRequired(for level: Int) -> Int {

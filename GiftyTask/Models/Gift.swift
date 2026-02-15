@@ -59,7 +59,10 @@ struct Gift: Identifiable, Codable, Hashable {
         self.updatedAt = updatedAt
     }
     
-    // アンロック処理
+    /// ロック状態（status の簡易アクセス）
+    var isLocked: Bool { status == .locked }
+    
+    /// アンロック処理（URL付き・外部連携用）
     mutating func unlock(with giftURL: String, gifteeGiftId: String) {
         self.status = .unlocked
         self.giftURL = giftURL
@@ -67,6 +70,17 @@ struct Gift: Identifiable, Codable, Hashable {
         self.unlockedAt = Date()
         self.updatedAt = Date()
     }
+    
+    /// アンロック処理（条件達成のみ・アプリ内表示用）
+    mutating func unlockLocally() {
+        self.status = .unlocked
+        self.giftURL = Gift.defaultGiftURL
+        self.unlockedAt = Date()
+        self.updatedAt = Date()
+    }
+    
+    /// アンロック後のデフォルト遷移先（LINEギフト公式など）
+    static let defaultGiftURL = "https://linegift.line.me/"
 }
 
 // MARK: - Gift Status
@@ -86,15 +100,28 @@ enum GiftType: String, Codable {
 struct UnlockCondition: Codable, Hashable {
     var conditionType: ConditionType
     var epicId: String? // エピック完了の場合
-    var taskId: String? // タスク完了の場合
+    var taskId: String? // 単一タスク完了の場合
+    var taskIds: [String]? // 複数タスク完了の場合
     var xpThreshold: Int? // XP閾値の場合
     var streakDays: Int? // 連続日数の場合
     
-    enum ConditionType: String, Codable {
+    enum ConditionType: String, Codable, CaseIterable {
         case epicCompletion = "epic_completion"
         case taskCompletion = "task_completion"
+        case multipleTasksCompletion = "multiple_tasks_completion"
         case xpThreshold = "xp_threshold"
         case streakDays = "streak_days"
+    }
+    
+    /// UI表示用のラベル
+    static func displayName(for type: ConditionType) -> String {
+        switch type {
+        case .epicCompletion: return "健康習慣のエピック完了時"
+        case .taskCompletion: return "特定のタスク完了時"
+        case .multipleTasksCompletion: return "複数のタスク完了時"
+        case .xpThreshold: return "XP閾値達成時"
+        case .streakDays: return "タスクの継続達成時"
+        }
     }
 }
 
