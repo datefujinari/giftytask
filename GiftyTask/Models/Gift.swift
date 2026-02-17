@@ -19,6 +19,8 @@ struct Gift: Identifiable, Codable, Hashable {
     var unlockedAt: Date?
     var createdAt: Date
     var updatedAt: Date
+    var rewardUrl: String?
+    var currentStreak: Int
     
     // 初期化
     init(
@@ -38,7 +40,9 @@ struct Gift: Identifiable, Codable, Hashable {
         gifteeGiftId: String? = nil,
         unlockedAt: Date? = nil,
         createdAt: Date = Date(),
-        updatedAt: Date = Date()
+        updatedAt: Date = Date(),
+        rewardUrl: String? = nil,
+        currentStreak: Int = 0
     ) {
         self.id = id
         self.title = title
@@ -57,7 +61,11 @@ struct Gift: Identifiable, Codable, Hashable {
         self.unlockedAt = unlockedAt
         self.createdAt = createdAt
         self.updatedAt = updatedAt
+        self.rewardUrl = rewardUrl
+        self.currentStreak = currentStreak
     }
+    
+    var effectiveRewardUrl: String? { rewardUrl ?? giftURL }
     
     /// ロック状態（status の簡易アクセス）
     var isLocked: Bool { status == .locked }
@@ -71,15 +79,14 @@ struct Gift: Identifiable, Codable, Hashable {
         self.updatedAt = Date()
     }
     
-    /// アンロック処理（条件達成のみ・アプリ内表示用）
-    mutating func unlockLocally() {
+    /// 条件達成時のアンロック（rewardUrl があれば設定、なければおめでとうモーダル用）
+    mutating func unlockLocally(rewardURL: String? = nil) {
         self.status = .unlocked
-        self.giftURL = Gift.defaultGiftURL
+        self.giftURL = rewardURL ?? rewardUrl ?? Gift.defaultGiftURL
         self.unlockedAt = Date()
         self.updatedAt = Date()
     }
     
-    /// アンロック後のデフォルト遷移先（LINEギフト公式など）
     static let defaultGiftURL = "https://linegift.line.me/"
 }
 
@@ -96,32 +103,95 @@ enum GiftType: String, Codable {
     case friendAssigned = "friend_assigned" // フレンドから割り当て
 }
 
-// MARK: - Unlock Condition
+// MARK: - Unlock Condition（targetIds でエピック/タスクIDを統一管理）
 struct UnlockCondition: Codable, Hashable {
     var conditionType: ConditionType
-    var epicId: String? // エピック完了の場合
-    var taskId: String? // 単一タスク完了の場合
-    var taskIds: [String]? // 複数タスク完了の場合
-    var xpThreshold: Int? // XP閾値の場合
-    var streakDays: Int? // 連続日数の場合
+    /// 対象ID（エピック1つ / タスク1つ / タスク複数 / 継続用タスク1つ）
+    var targetIds: [String]
+    var epicId: String? { conditionType == .epicCompletion ? targetIds.first : nil }
+    var taskId: String? { (conditionType == .singleTask || conditionType == .streak) ? targetIds.first : nil }
+    var taskIds: [String]? { conditionType == .multipleTasks ? targetIds : nil }
+    var xpThreshold: Int?
+    /// 継続必要日数（streak の場合）
+    var streakDays: Int?
     
     enum ConditionType: String, Codable, CaseIterable {
         case epicCompletion = "epic_completion"
-        case taskCompletion = "task_completion"
-        case multipleTasksCompletion = "multiple_tasks_completion"
+        case singleTask = "single_task"
+        case multipleTasks = "multiple_tasks"
+        case streak = "streak"
         case xpThreshold = "xp_threshold"
-        case streakDays = "streak_days"
+        case taskCompletion = "task_completion"     // 旧: singleTask にマッピング
+        case multipleTasksCompletion = "multiple_tasks_completion"
+        case streakDays = "streak_days"            // 旧: streak にマッピング
     }
     
-    /// UI表示用のラベル
     static func displayName(for type: ConditionType) -> String {
         switch type {
-        case .epicCompletion: return "健康習慣のエピック完了時"
-        case .taskCompletion: return "特定のタスク完了時"
-        case .multipleTasksCompletion: return "複数のタスク完了時"
+        case .epicCompletion: return "エピック完了"
+        case .singleTask, .taskCompletion: return "特定タスク完了"
+        case .multipleTasks, .multipleTasksCompletion: return "複数タスク完了"
+        case .streak, .streakDays: return "継続達成"
         case .xpThreshold: return "XP閾値達成時"
-        case .streakDays: return "タスクの継続達成時"
         }
+    }
+    
+    init(conditionType: ConditionType, targetIds: [String] = [], streakDays: Int? = nil, xpThreshold: Int? = nil) {
+        self.conditionType = conditionType
+        self.targetIds = targetIds
+        self.streakDays = streakDays
+        self.xpThreshold = xpThreshold
+    }
+    
+    /// 後方互換：既存の epicId/taskId/taskIds から初期化
+    init(conditionType: ConditionType, epicId: String? = nil, taskId: String? = nil, taskIds: [String]? = nil, streakDays: Int? = nil, xpThreshold: Int? = nil) {
+        self.conditionType = conditionType
+        self.streakDays = streakDays
+        self.xpThreshold = xpThreshold
+        switch conditionType {
+        case .epicCompletion: self.targetIds = [epicId].compactMap { $0 }
+        case .singleTask, .taskCompletion: self.targetIds = [taskId].compactMap { $0 }
+        case .multipleTasks, .multipleTasksCompletion: self.targetIds = taskIds ?? []
+        case .streak, .streakDays: self.targetIds = [taskId].compactMap { $0 }
+        case .xpThreshold: self.targetIds = []
+        }
+    }
+}
+
+// 後方互換のため Decodable で epicId/taskId/taskIds も読む
+extension UnlockCondition {
+    enum CodingKeys: String, CodingKey {
+        case conditionType, targetIds, streakDays, xpThreshold
+        case epicId, taskId, taskIds
+    }
+    
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        conditionType = try c.decode(ConditionType.self, forKey: .conditionType)
+        streakDays = try c.decodeIfPresent(Int.self, forKey: .streakDays)
+        xpThreshold = try c.decodeIfPresent(Int.self, forKey: .xpThreshold)
+        if let ids = try c.decodeIfPresent([String].self, forKey: .targetIds) {
+            targetIds = ids
+        } else {
+            let epicId = try c.decodeIfPresent(String.self, forKey: .epicId)
+            let taskId = try c.decodeIfPresent(String.self, forKey: .taskId)
+            let taskIds = try c.decodeIfPresent([String].self, forKey: .taskIds)
+            switch conditionType {
+            case .epicCompletion: targetIds = [epicId].compactMap { $0 }
+            case .singleTask, .taskCompletion: targetIds = [taskId].compactMap { $0 }
+            case .multipleTasks, .multipleTasksCompletion: targetIds = taskIds ?? []
+            case .streak, .streakDays: targetIds = [taskId].compactMap { $0 }
+            case .xpThreshold: targetIds = []
+            }
+        }
+    }
+    
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(conditionType, forKey: .conditionType)
+        try c.encode(targetIds, forKey: .targetIds)
+        try c.encodeIfPresent(streakDays, forKey: .streakDays)
+        try c.encodeIfPresent(xpThreshold, forKey: .xpThreshold)
     }
 }
 

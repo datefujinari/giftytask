@@ -29,6 +29,8 @@ struct ContentView: View {
             
             GiftListView()
                 .environmentObject(giftViewModel)
+                .environmentObject(taskViewModel)
+                .environmentObject(activityViewModel)
                 .tabItem {
                     Label("ギフトBOX", systemImage: "gift.fill")
                 }

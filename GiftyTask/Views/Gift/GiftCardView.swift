@@ -4,9 +4,11 @@ import SwiftUI
 struct GiftCardView: View {
     var gift: Gift
     var onUnlock: (() -> Void)? = nil
+    var onEdit: (() -> Void)? = nil
     
     @State private var isUnlocking = false
     @State private var didPlayUnlockFeedback = false
+    @State private var showCelebration = false
     
     var body: some View {
         cardContent
@@ -17,7 +19,13 @@ struct GiftCardView: View {
                         HapticManager.shared.giftUnlocked()
                         didPlayUnlockFeedback = true
                     }
+                    if (gift.effectiveRewardUrl ?? "").isEmpty {
+                        showCelebration = true
+                    }
                 }
+            }
+            .sheet(isPresented: $showCelebration) {
+                CelebrationModal(message: "おめでとう🎉", subtitle: gift.title)
             }
     }
     
@@ -33,11 +41,21 @@ struct GiftCardView: View {
                 
                 Spacer()
                 
-                // ロックアイコン
                 if gift.status == .locked {
-                    Image(systemName: "lock.fill")
-                        .font(.system(size: 24))
-                        .foregroundColor(.white.opacity(0.6))
+                    HStack(spacing: 12) {
+                        if onEdit != nil {
+                            Button {
+                                onEdit?()
+                            } label: {
+                                Image(systemName: "pencil.circle.fill")
+                                    .font(.system(size: 22))
+                                    .foregroundColor(.white.opacity(0.8))
+                            }
+                        }
+                        Image(systemName: "lock.fill")
+                            .font(.system(size: 24))
+                            .foregroundColor(.white.opacity(0.6))
+                    }
                 }
             }
             
@@ -66,15 +84,37 @@ struct GiftCardView: View {
                 
                 Spacer()
                 
-                // ステータス（ロック解除で「利用する」に切り替わり＋パリンと割れるアニメーション）
+                // ステータス（ロック解除時: rewardUrl があれば「利用する」でブラウザ、なければおめでとうモーダル）
                 if gift.status == .unlocked {
-                    let urlString = gift.giftURL ?? Gift.defaultGiftURL
-                    if let url = URL(string: urlString) {
+                    if let urlString = gift.effectiveRewardUrl, !urlString.isEmpty, let url = URL(string: urlString) {
                         Link(destination: url) {
                             HStack(spacing: 8) {
                                 Text("利用する")
                                     .font(.system(size: 14, weight: .semibold))
                                 Image(systemName: "arrow.right.circle.fill")
+                                    .font(.system(size: 16))
+                            }
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 10)
+                            .background(
+                                LinearGradient(
+                                    colors: [Color.blue, Color.purple],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .cornerRadius(12)
+                        }
+                        .transition(.scale(scale: 0.9).combined(with: .opacity))
+                    } else {
+                        Button {
+                            showCelebration = true
+                        } label: {
+                            HStack(spacing: 8) {
+                                Text("見る")
+                                    .font(.system(size: 14, weight: .semibold))
+                                Image(systemName: "gift.fill")
                                     .font(.system(size: 16))
                             }
                             .foregroundColor(.white)
@@ -145,6 +185,35 @@ struct GiftCardView: View {
                 }
             }
         )
+    }
+}
+
+// MARK: - おめでとうモーダル（rewardUrl が空の解禁時）
+struct CelebrationModal: View {
+    let message: String
+    var subtitle: String? = nil
+    @Environment(\.dismiss) private var dismiss
+    
+    var body: some View {
+        VStack(spacing: 24) {
+            Text(message)
+                .font(.system(size: 28, weight: .bold))
+            if let subtitle = subtitle, !subtitle.isEmpty {
+                Text(subtitle)
+                    .font(.system(size: 17))
+                    .foregroundColor(.secondary)
+            }
+            Button("閉じる") {
+                dismiss()
+            }
+            .font(.system(size: 17, weight: .semibold))
+            .foregroundColor(.white)
+            .padding(.horizontal, 32)
+            .padding(.vertical, 12)
+            .background(Color.accentColor)
+            .cornerRadius(12)
+        }
+        .padding(40)
     }
 }
 

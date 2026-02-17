@@ -3,8 +3,11 @@ import SwiftUI
 // MARK: - Gift List View (ギフトBOX)
 struct GiftListView: View {
     @EnvironmentObject var giftViewModel: GiftViewModel
+    @EnvironmentObject var taskViewModel: TaskViewModel
+    @EnvironmentObject var activityViewModel: ActivityViewModel
     @State private var selectedFilter: GiftFilter = .all
     @State private var showAddGift = false
+    @State private var editingGift: Gift?
     
     enum GiftFilter: String, CaseIterable {
         case all = "全て"
@@ -54,8 +57,10 @@ struct GiftListView: View {
                         ScrollView {
                             LazyVStack(spacing: 20) {
                                 ForEach(filteredGifts) { gift in
-                                    GiftCardView(gift: gift)
-                                        .padding(.horizontal)
+                                    GiftCardView(gift: gift, onEdit: {
+                                        editingGift = gift
+                                    })
+                                    .padding(.horizontal)
                                 }
                             }
                             .padding(.vertical)
@@ -85,6 +90,14 @@ struct GiftListView: View {
             .sheet(isPresented: $showAddGift) {
                 AddGiftView(isPresented: $showAddGift)
                     .environmentObject(giftViewModel)
+                    .environmentObject(taskViewModel)
+                    .environmentObject(activityViewModel)
+            }
+            .sheet(item: $editingGift, onDismiss: { editingGift = nil }) { gift in
+                AddGiftView(isPresented: .constant(true), editingGift: gift)
+                    .environmentObject(giftViewModel)
+                    .environmentObject(taskViewModel)
+                    .environmentObject(activityViewModel)
             }
         }
     }
@@ -94,5 +107,7 @@ struct GiftListView: View {
 #Preview {
     GiftListView()
         .environmentObject(GiftViewModel())
+        .environmentObject(TaskViewModel())
+        .environmentObject(ActivityViewModel())
 }
 
