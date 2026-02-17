@@ -5,6 +5,7 @@ struct DashboardView: View {
     @EnvironmentObject var taskViewModel: TaskViewModel
     @EnvironmentObject var activityViewModel: ActivityViewModel
     @EnvironmentObject var giftViewModel: GiftViewModel
+    @EnvironmentObject var epicViewModel: EpicViewModel
     @State private var showAddTask = false
     
     var body: some View {
@@ -117,7 +118,7 @@ struct DashboardView: View {
                             .font(.system(size: 22, weight: .bold))
                             .padding(.horizontal)
                         
-                        ForEach(PreviewContainer.mockEpics.prefix(2)) { epic in
+                        ForEach(epicViewModel.epics.prefix(2)) { epic in
                             EpicProgressCard(epic: epic)
                                 .padding(.horizontal)
                         }
@@ -160,7 +161,7 @@ struct DashboardView: View {
     
     /// エピックの平均進捗率を計算
     private func calculateEpicProgress() -> Double {
-        let epics = PreviewContainer.mockEpics.prefix(2)
+        let epics = epicViewModel.epics.prefix(2)
         guard !epics.isEmpty else { return 0.0 }
         
         var totalProgress = 0.0
@@ -435,5 +436,6 @@ struct EpicProgressCard: View {
         .environmentObject(TaskViewModel())
         .environmentObject(ActivityViewModel())
         .environmentObject(GiftViewModel())
+        .environmentObject(EpicViewModel())
 }
 

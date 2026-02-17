@@ -5,6 +5,7 @@ struct TaskListView: View {
     @EnvironmentObject var taskViewModel: TaskViewModel
     @EnvironmentObject var activityViewModel: ActivityViewModel
     @EnvironmentObject var giftViewModel: GiftViewModel
+    @EnvironmentObject var epicViewModel: EpicViewModel
     @State private var showAddTask = false
     
     var body: some View {
@@ -77,7 +78,7 @@ struct TaskListView: View {
                                                 }
                                                 
                                                 let completedCount = taskViewModel.todayTasks.filter { $0.status == .completed }.count
-                                                let epicIds = PreviewContainer.mockEpics.map(\.id)
+                                                let epicIds = epicViewModel.epics.map(\.id)
                                                 let epicProgress = taskViewModel.averageEpicProgress(epicIds: epicIds)
                                                 activityViewModel.calculateActivityRing(
                                                     completedTasksCount: completedCount,
@@ -221,5 +222,6 @@ struct EmptyStateView: View {
         .environmentObject(TaskViewModel())
         .environmentObject(ActivityViewModel())
         .environmentObject(GiftViewModel())
+        .environmentObject(EpicViewModel())
 }
 

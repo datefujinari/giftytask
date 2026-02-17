@@ -20,7 +20,35 @@ class ActivityViewModel: ObservableObject {
     // MARK: - Initialization
     init(currentUser: User = PreviewContainer.mockUser) {
         self.currentUser = currentUser
-        initializeMockData()
+        loadData()
+    }
+    
+    // MARK: - Persistence (UserDefaults)
+    func saveData() {
+        if let data = UserDefaultsStorage.encode(dailyActivityData) {
+            UserDefaultsStorage.save(data, key: UserDefaultsStorage.Key.dailyActivityData)
+        }
+        if let data = UserDefaultsStorage.encode(streakData) {
+            UserDefaultsStorage.save(data, key: UserDefaultsStorage.Key.streakData)
+        }
+        if let data = UserDefaultsStorage.encode(currentUser) {
+            UserDefaultsStorage.save(data, key: UserDefaultsStorage.Key.currentUser)
+        }
+    }
+    
+    func loadData() {
+        if let data = UserDefaultsStorage.load(key: UserDefaultsStorage.Key.dailyActivityData),
+           let decoded = UserDefaultsStorage.decode([ActivityData].self, from: data) {
+            dailyActivityData = decoded
+        }
+        if let data = UserDefaultsStorage.load(key: UserDefaultsStorage.Key.streakData),
+           let decoded = UserDefaultsStorage.decode(StreakData.self, from: data) {
+            streakData = decoded
+        }
+        if let data = UserDefaultsStorage.load(key: UserDefaultsStorage.Key.currentUser),
+           let decoded = UserDefaultsStorage.decode(User.self, from: data) {
+            currentUser = decoded
+        }
     }
     
     // MARK: - XP & Level
@@ -32,6 +60,7 @@ class ActivityViewModel: ObservableObject {
         var user = currentUser
         let leveledUp = user.addXP(xp)
         currentUser = user
+        saveData()
         return leveledUp
     }
     // MARK: - Activity Ring Calculation
@@ -90,11 +119,13 @@ class ActivityViewModel: ObservableObject {
     func updateStreak() {
         let today = Date()
         streakData.updateStreak(with: today)
+        saveData()
     }
     
     /// ストリークデータをリセット
     func resetStreak() {
         streakData = StreakData()
+        saveData()
     }
     
     // MARK: - Daily Activity Management
@@ -143,9 +174,7 @@ class ActivityViewModel: ObservableObject {
         
         // ストリークを更新
         updateStreak()
-        
-        // TODO: FirebaseServiceに保存
-        // await firebaseService.updateActivityData(todayActivity)
+        saveData()
     }
     
     // MARK: - Heatmap Generation
@@ -198,27 +227,12 @@ class ActivityViewModel: ObservableObject {
     
     // MARK: - Data Loading
 
-    /// アクティビティデータを読み込む
+    /// アクティビティデータを読み込む（UserDefaults 優先、無ければ空のまま）
     func loadActivityData() async {
         isLoading = true
         errorMessage = nil
-        
-        // TODO: FirebaseServiceから取得
-        // do {
-        //     dailyActivityData = try await firebaseService.fetchActivityData()
-        //     streakData = try await firebaseService.fetchStreakData()
-        // } catch {
-        //     errorMessage = "アクティビティデータの読み込みに失敗しました: \(error.localizedDescription)"
-        // }
-        
-        // 現時点ではモックデータを使用
-        try? await _Concurrency.Task.sleep(nanoseconds: 200_000_000) // 0.2秒待機
-        
-        // モックデータの初期化（既にinitで呼ばれている場合はスキップ）
-        if dailyActivityData.isEmpty {
-            initializeMockData()
-        }
-        
+        loadData()
+        generateHeatmapData()
         isLoading = false
     }
     /// モックデータの初期化

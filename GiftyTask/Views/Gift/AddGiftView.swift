@@ -11,6 +11,7 @@ enum AddGiftStep: Int, CaseIterable {
 struct AddGiftView: View {
     @EnvironmentObject var giftViewModel: GiftViewModel
     @EnvironmentObject var taskViewModel: TaskViewModel
+    @EnvironmentObject var epicViewModel: EpicViewModel
     @Environment(\.dismiss) private var dismiss
     @Binding var isPresented: Bool
     var editingGift: Gift? = nil
@@ -196,11 +197,11 @@ struct AddGiftView: View {
             Text("対象エピック")
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundColor(.secondary)
-            let epics = PreviewContainer.mockEpics.filter { epic in
+            let epics = epicViewModel.epics.filter { epic in
                 let tasks = taskViewModel.getTasks(for: epic.id)
                 return !tasks.isEmpty && !tasks.allSatisfy { $0.status == .completed }
             }
-            ForEach(epics.isEmpty ? PreviewContainer.mockEpics : epics) { epic in
+            ForEach(epics.isEmpty ? epicViewModel.epics : epics) { epic in
                 Button {
                     selectedTargetIds = [epic.id]
                 } label: {
@@ -498,6 +499,7 @@ extension GiftViewModel {
             currentStreak: 0
         )
         gifts.append(gift)
+        saveData()
         return gift
     }
 }
@@ -508,4 +510,5 @@ extension GiftViewModel {
         .environmentObject(GiftViewModel())
         .environmentObject(TaskViewModel())
         .environmentObject(ActivityViewModel())
+        .environmentObject(EpicViewModel())
 }

@@ -5,6 +5,7 @@ struct ContentView: View {
     @StateObject private var taskViewModel = TaskViewModel()
     @StateObject private var activityViewModel = ActivityViewModel()
     @StateObject private var giftViewModel = GiftViewModel()
+    @StateObject private var epicViewModel = EpicViewModel()
     @State private var selectedTab = 0
     
     var body: some View {
@@ -13,6 +14,7 @@ struct ContentView: View {
                 .environmentObject(taskViewModel)
                 .environmentObject(activityViewModel)
                 .environmentObject(giftViewModel)
+                .environmentObject(epicViewModel)
                 .tabItem {
                     Label("ダッシュボード", systemImage: "house.fill")
                 }
@@ -22,6 +24,7 @@ struct ContentView: View {
                 .environmentObject(taskViewModel)
                 .environmentObject(activityViewModel)
                 .environmentObject(giftViewModel)
+                .environmentObject(epicViewModel)
                 .tabItem {
                     Label("タスク", systemImage: "checklist")
                 }
@@ -31,6 +34,7 @@ struct ContentView: View {
                 .environmentObject(giftViewModel)
                 .environmentObject(taskViewModel)
                 .environmentObject(activityViewModel)
+                .environmentObject(epicViewModel)
                 .tabItem {
                     Label("ギフトBOX", systemImage: "gift.fill")
                 }

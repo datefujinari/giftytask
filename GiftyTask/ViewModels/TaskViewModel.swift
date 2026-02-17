@@ -117,10 +117,24 @@ class TaskViewModel: ObservableObject {
     }
     
     // MARK: - Initialization
-        // nonisolated を削除し、代入できるように修正
-        init(tasks: [Task] = []) {
-            self.tasks = tasks
+    init(tasks: [Task] = []) {
+        self.tasks = tasks
+        loadData()
+    }
+    
+    // MARK: - Persistence (UserDefaults)
+    func saveData() {
+        guard let data = UserDefaultsStorage.encode(tasks) else { return }
+        UserDefaultsStorage.save(data, key: UserDefaultsStorage.Key.tasks)
+    }
+    
+    func loadData() {
+        guard let data = UserDefaultsStorage.load(key: UserDefaultsStorage.Key.tasks),
+              let decoded = UserDefaultsStorage.decode([Task].self, from: data) else {
+            return
         }
+        tasks = decoded
+    }
     // MARK: - Task CRUD Operations
     
     /// タスクを作成
@@ -147,9 +161,10 @@ class TaskViewModel: ObservableObject {
             rewardDisplayName: rewardDisplayName,
             isRoutine: isRoutine
         )
-        tasks.append(newTask)
-        return newTask
-    }
+            tasks.append(newTask)
+            saveData()
+            return newTask
+        }
     
     /// タスクを更新
     func updateTask(_ task: Task) {
@@ -160,16 +175,13 @@ class TaskViewModel: ObservableObject {
         var updatedTask = task
         updatedTask.updatedAt = Date()
         tasks[index] = updatedTask
-        
-        // TODO: FirebaseServiceに保存
-        // await firebaseService.updateTask(updatedTask)
+        saveData()
     }
     
     /// タスクを削除
     func deleteTask(_ task: Task) {
         tasks.removeAll { $0.id == task.id }
-        
-        // TODO: FirebaseServiceから削除
+        saveData()
         // await firebaseService.deleteTask(task.id)
     }
     
@@ -183,9 +195,7 @@ class TaskViewModel: ObservableObject {
         updatedTask.status = .archived
         updatedTask.updatedAt = Date()
         tasks[index] = updatedTask
-        
-        // TODO: FirebaseServiceに保存
-        // await firebaseService.updateTask(updatedTask)
+        saveData()
     }
     
     /// タスクのステータスを更新
@@ -203,9 +213,7 @@ class TaskViewModel: ObservableObject {
         }
         
         tasks[index] = updatedTask
-        
-        // TODO: FirebaseServiceに保存
-        // await firebaseService.updateTask(updatedTask)
+        saveData()
     }
     
     // MARK: - Task Completion
@@ -237,6 +245,7 @@ class TaskViewModel: ObservableObject {
         completedTask.updatedAt = Date()
         
         tasks[index] = completedTask
+        saveData()
         
         let xpGained = completedTask.xpReward
         
@@ -308,21 +317,11 @@ class TaskViewModel: ObservableObject {
     
     // MARK: - Data Loading
     
-    /// タスクを読み込む（将来的にFirebaseServiceから取得）
+    /// タスクを読み込む（UserDefaults 優先、無ければ空）
     func loadTasks() async {
         isLoading = true
         errorMessage = nil
-        
-        // TODO: FirebaseServiceから取得
-        // do {
-        //     tasks = try await firebaseService.fetchTasks()
-        // } catch {
-        //     errorMessage = "タスクの読み込みに失敗しました: \(error.localizedDescription)"
-        // }
-        
-        // 現時点ではモックデータを使用
-        try? await _Concurrency.Task.sleep(nanoseconds: 300_000_000) // 0.3秒待機
-        tasks = PreviewContainer.mockTasks
+        loadData()
         isLoading = false
     }
     

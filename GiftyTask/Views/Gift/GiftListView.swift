@@ -5,6 +5,7 @@ struct GiftListView: View {
     @EnvironmentObject var giftViewModel: GiftViewModel
     @EnvironmentObject var taskViewModel: TaskViewModel
     @EnvironmentObject var activityViewModel: ActivityViewModel
+    @EnvironmentObject var epicViewModel: EpicViewModel
     @State private var selectedFilter: GiftFilter = .all
     @State private var showAddGift = false
     @State private var editingGift: Gift?
@@ -92,12 +93,14 @@ struct GiftListView: View {
                     .environmentObject(giftViewModel)
                     .environmentObject(taskViewModel)
                     .environmentObject(activityViewModel)
+                    .environmentObject(epicViewModel)
             }
             .sheet(item: $editingGift, onDismiss: { editingGift = nil }) { gift in
                 AddGiftView(isPresented: .constant(true), editingGift: gift)
                     .environmentObject(giftViewModel)
                     .environmentObject(taskViewModel)
                     .environmentObject(activityViewModel)
+                    .environmentObject(epicViewModel)
             }
         }
     }
@@ -109,5 +112,6 @@ struct GiftListView: View {
         .environmentObject(GiftViewModel())
         .environmentObject(TaskViewModel())
         .environmentObject(ActivityViewModel())
+        .environmentObject(EpicViewModel())
 }
 

@@ -9,12 +9,30 @@ class GiftViewModel: ObservableObject {
     @Published var errorMessage: String?
     
     init(gifts: [Gift] = []) {
-        self.gifts = gifts.isEmpty ? PreviewContainer.mockGifts : gifts
+        if !gifts.isEmpty {
+            self.gifts = gifts
+        } else {
+            loadData()
+        }
+    }
+    
+    func saveData() {
+        guard let data = UserDefaultsStorage.encode(gifts) else { return }
+        UserDefaultsStorage.save(data, key: UserDefaultsStorage.Key.gifts)
+    }
+    
+    func loadData() {
+        guard let data = UserDefaultsStorage.load(key: UserDefaultsStorage.Key.gifts),
+              let decoded = UserDefaultsStorage.decode([Gift].self, from: data) else {
+            return
+        }
+        gifts = decoded
     }
     
     /// ギフトを追加し、リストに即反映
     func addGift(_ gift: Gift) {
         gifts.append(gift)
+        saveData()
     }
     
     /// ギフトを作成して追加
@@ -38,6 +56,7 @@ class GiftViewModel: ObservableObject {
             currency: "JPY"
         )
         gifts.append(gift)
+        saveData()
         return gift
     }
     
@@ -92,6 +111,7 @@ class GiftViewModel: ObservableObject {
                         unlockGiftAtIndex(index, gift: &gift)
                     } else {
                         gifts[index] = gift
+                        saveData()
                     }
                 }
             case .xpThreshold:
@@ -117,6 +137,7 @@ class GiftViewModel: ObservableObject {
                 let daysSince = calendar.dateComponents([.day], from: last, to: today).day ?? 0
                 if daysSince > 1 {
                     gifts[index].currentStreak = 0
+                    saveData()
                 }
             }
         }
@@ -125,6 +146,7 @@ class GiftViewModel: ObservableObject {
     private func unlockGiftAtIndex(_ index: Int, gift: inout Gift) {
         gift.unlockLocally(rewardURL: gift.rewardUrl)
         gifts[index] = gift
+        saveData()
         HapticManager.shared.giftUnlocked()
     }
     
@@ -139,11 +161,11 @@ class GiftViewModel: ObservableObject {
         var updated = gift
         updated.updatedAt = Date()
         gifts[index] = updated
+        saveData()
     }
     
+    /// UserDefaults から再読み込み（保存データがあれば優先）
     func loadGifts() {
-        if gifts.isEmpty {
-            gifts = PreviewContainer.mockGifts
-        }
+        loadData()
     }
 }
