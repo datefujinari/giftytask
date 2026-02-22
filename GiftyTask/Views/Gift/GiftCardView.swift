@@ -11,6 +11,7 @@ struct GiftCardView: View {
     @State private var didPlayUnlockFeedback = false
     @State private var showReceiptModal = false
     @State private var showUseConfirmModal = false
+    @State private var showReceiveConfirmModal = false
     
     @ViewBuilder
     private func actionButtonContent(text: String, icon: String, isGreen: Bool = false) -> some View {
@@ -50,6 +51,15 @@ struct GiftCardView: View {
                         onUse?(gift)
                     },
                     onNo: { showUseConfirmModal = false }
+                )
+            }
+            .sheet(isPresented: $showReceiveConfirmModal) {
+                ReceiveConfirmModal(
+                    onYes: {
+                        showReceiveConfirmModal = false
+                        performReceiveAction()
+                    },
+                    onNo: { showReceiveConfirmModal = false }
                 )
             }
             .sheet(isPresented: $showReceiptModal) {
@@ -129,9 +139,14 @@ struct GiftCardView: View {
             if gift.status == .unlocked {
                 if let urlString = gift.effectiveRewardUrl, !urlString.isEmpty, let url = URL(string: urlString) {
                     Link(destination: url) {
-                        actionButtonContent(text: "利用する", icon: "arrow.right.circle.fill")
+                        actionButtonContent(text: "確認する", icon: "arrow.right.circle.fill")
                     }
-                    .frame(width: 120, height: 44)
+                    .frame(width: 100, height: 44)
+                    Button { onReceiveTapped() } label: {
+                        actionButtonContent(text: "受け取る", icon: "checkmark.circle.fill", isGreen: true)
+                    }
+                    .buttonStyle(.plain)
+                    .frame(width: 100, height: 44)
                 } else {
                     Button { showReceiptModal = true } label: {
                         actionButtonContent(text: "見る", icon: "gift.fill")
@@ -183,6 +198,16 @@ struct GiftCardView: View {
             .shadow(color: Color.black.opacity(0.2), radius: 10, x: 0, y: 5)
     }
     
+    /// 「受け取る」ボタン押下時（URLありのギフト用・将来独立して変更可能）
+    private func onReceiveTapped() {
+        showReceiveConfirmModal = true
+    }
+    
+    /// 受け取り処理（現状は「使う」と同じ動作）
+    private func performReceiveAction() {
+        onUse?(gift)
+    }
+    
     @ViewBuilder
     private var unlockingOverlay: some View {
         if isUnlocking {
@@ -192,6 +217,43 @@ struct GiftCardView: View {
                 .tint(.white)
                 .scaleEffect(1.5)
         }
+    }
+}
+
+// MARK: - 受け取り確認モーダル（URLありギフトの「受け取る」用）
+struct ReceiveConfirmModal: View {
+    let onYes: () -> Void
+    let onNo: () -> Void
+    @Environment(\.dismiss) private var dismiss
+    
+    var body: some View {
+        VStack(spacing: 24) {
+            Text("本当に受け取りますか？")
+                .font(.system(size: 20, weight: .semibold))
+            HStack(spacing: 16) {
+                Button("いいえ") {
+                    onNo()
+                    dismiss()
+                }
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundColor(.secondary)
+                .padding(.horizontal, 24)
+                .padding(.vertical, 12)
+                .background(Color(.systemGray5))
+                .cornerRadius(12)
+                Button("はい") {
+                    onYes()
+                    dismiss()
+                }
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundColor(.white)
+                .padding(.horizontal, 24)
+                .padding(.vertical, 12)
+                .background(Color.accentColor)
+                .cornerRadius(12)
+            }
+        }
+        .padding(40)
     }
 }
 
