@@ -32,6 +32,8 @@
 		2AE001022F25000100F53AAE /* AddTaskView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AE001012F25000100F53AAE /* AddTaskView.swift */; };
 		2AE002022F25000200F53AAE /* GiftViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AE002012F25000200F53AAE /* GiftViewModel.swift */; };
 		2AE003022F25000300F53AAE /* AddGiftView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AE003012F25000300F53AAE /* AddGiftView.swift */; };
+		2A77A0012F24900001F53AAE /* ActivityData+Heatmap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A77A0002F24900001F53AAE /* ActivityData+Heatmap.swift */; };
+		2A77A0032F24900002F53AAE /* GiftyHeatmapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A77A0022F24900002F53AAE /* GiftyHeatmapView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -84,6 +86,8 @@
 		2AE001012F25000100F53AAE /* AddTaskView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AddTaskView.swift; sourceTree = "<group>"; };
 		2AE002012F25000200F53AAE /* GiftViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GiftViewModel.swift; sourceTree = "<group>"; };
 		2AE003012F25000300F53AAE /* AddGiftView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddGiftView.swift; sourceTree = "<group>"; };
+		2A77A0002F24900001F53AAE /* ActivityData+Heatmap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ActivityData+Heatmap.swift"; sourceTree = "<group>"; };
+		2A77A0022F24900002F53AAE /* GiftyHeatmapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GiftyHeatmapView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -169,6 +173,7 @@
 			children = (
 				2A077DD62F14980000F530AE /* ActivityRingView.swift */,
 				2A077DD72F14980000F530AE /* DashboardView.swift */,
+				2A77A0022F24900002F53AAE /* GiftyHeatmapView.swift */,
 			);
 			path = Activity;
 			sourceTree = "<group>";
@@ -206,6 +211,7 @@
 		2A077DE52F14980000F530AE /* Models */ = {
 			isa = PBXGroup;
 			children = (
+				2A77A0002F24900001F53AAE /* ActivityData+Heatmap.swift */,
 				2A077DE02F14980000F530AE /* ActivityData.swift */,
 				2A077DE12F14980000F530AE /* Epic.swift */,
 				2A077DE22F14980000F530AE /* Gift.swift */,
@@ -375,6 +381,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				2A77A0012F24900001F53AAE /* ActivityData+Heatmap.swift in Sources */,
+				2A77A0032F24900002F53AAE /* GiftyHeatmapView.swift in Sources */,
 				2AE001022F25000100F53AAE /* AddTaskView.swift in Sources */,
 				2AE003022F25000300F53AAE /* AddGiftView.swift in Sources */,
 				2A077DF82F14980000F530AE /* ActivityData.swift in Sources */,

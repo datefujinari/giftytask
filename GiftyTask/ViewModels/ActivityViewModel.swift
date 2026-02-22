@@ -10,6 +10,7 @@ class ActivityViewModel: ObservableObject {
     @Published var heatmapData: [HeatmapData] = []
     @Published var dailyActivityData: [ActivityData] = []
     @Published var currentUser: User // XP・レベル管理（タスク完了で更新、ダッシュボードと同期）
+    @Published var heatmapTheme: HeatmapTheme = HeatmapTheme()
     @Published var isLoading = false
     @Published var errorMessage: String?
     
@@ -34,6 +35,9 @@ class ActivityViewModel: ObservableObject {
         if let data = UserDefaultsStorage.encode(currentUser) {
             UserDefaultsStorage.save(data, key: UserDefaultsStorage.Key.currentUser)
         }
+        if let data = UserDefaultsStorage.encode(heatmapTheme) {
+            UserDefaultsStorage.save(data, key: UserDefaultsStorage.Key.heatmapTheme)
+        }
     }
     
     func loadData() {
@@ -49,6 +53,26 @@ class ActivityViewModel: ObservableObject {
            let decoded = UserDefaultsStorage.decode(User.self, from: data) {
             currentUser = decoded
         }
+        if let data = UserDefaultsStorage.load(key: UserDefaultsStorage.Key.heatmapTheme),
+           let decoded = UserDefaultsStorage.decode(HeatmapTheme.self, from: data) {
+            heatmapTheme = decoded
+        }
+    }
+    
+    /// ローカルデータを初期状態にリセット
+    func resetData() {
+        dailyActivityData = []
+        streakData = StreakData()
+        heatmapTheme = HeatmapTheme()
+        currentUser = User(
+            id: "user-default",
+            displayName: "ユーザー",
+            level: 1,
+            xp: 0,
+            totalXP: 0
+        )
+        saveData()
+        generateHeatmapData()
     }
     
     // MARK: - XP & Level

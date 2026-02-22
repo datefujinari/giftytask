@@ -7,127 +7,14 @@ struct DashboardView: View {
     @EnvironmentObject var giftViewModel: GiftViewModel
     @EnvironmentObject var epicViewModel: EpicViewModel
     @State private var showAddTask = false
+    @State private var heatmapTheme = HeatmapTheme()
+    @State private var showResetConfirm = false
     
     var body: some View {
         NavigationView {
             ZStack(alignment: .bottomTrailing) {
-            ScrollView {
-                VStack(spacing: 24) {
-                    // ユーザー情報カード（XP・レベルは ActivityViewModel.currentUser でリアルタイム更新）
-                    UserInfoCard(user: activityViewModel.currentUser)
-                        .padding(.horizontal)
-                        .padding(.top)
-                    
-                    // アクティビティリング
-                    ActivityRingCardView(
-                        ringData: activityViewModel.activityRingData,
-                        completedTasks: taskViewModel.todayTasks.filter { $0.status == .completed }.count,
-                        goalTasks: activityViewModel.dailyGoal,
-                        epicProgress: calculateEpicProgress(),
-                        activeDays: activityViewModel.calculateActiveDays(),
-                        totalDays: activityViewModel.activeDaysPeriod
-                    )
-                    .padding(.horizontal)
-                    
-                    // ストリーク情報
-                    StreakCardView(streakData: activityViewModel.streakData)
-                        .padding(.horizontal)
-                    
-                    // ヒートマップ
-                    if !activityViewModel.heatmapData.isEmpty {
-                        HeatmapCardView(heatmapData: activityViewModel.heatmapData)
-                            .padding(.horizontal)
-                    }
-                    
-                    // 今日のタスク
-                    VStack(alignment: .leading, spacing: 16) {
-                        HStack {
-                            Text("今日のタスク")
-                                .font(.system(size: 22, weight: .bold))
-                            
-                            Spacer()
-                            
-                            Text("\(taskViewModel.todayTasks.filter { $0.status == .completed }.count)/\(taskViewModel.todayTasks.count)")
-                                .font(.system(size: 16, weight: .semibold))
-                                .foregroundColor(.secondary)
-                        }
-                        .padding(.horizontal)
-                        
-                        if taskViewModel.todayTasks.isEmpty {
-                            EmptyStateView(
-                                icon: "checkmark.circle.fill",
-                                title: "今日のタスクはありません",
-                                message: "新しいタスクを作成しましょう"
-                            )
-                            .frame(height: 200)
-                        } else {
-                            ScrollView(.horizontal, showsIndicators: false) {
-                                HStack(spacing: 16) {
-                                    ForEach(taskViewModel.todayTasks.prefix(5).indices, id: \.self) { index in
-                                        TaskCardView(
-                                            task: Binding(
-                                                get: { taskViewModel.todayTasks[index] },
-                                                set: { taskViewModel.updateTask($0) }
-                                            ),
-                                            onComplete: { completedTask, photo in
-                                                // タスク完了: ViewModel完了 → XP加算・レベルアップ → リング更新 → ハプティック
-                                                _Concurrency.Task { @MainActor in
-                                                    do {
-                                                        let photoURL = photo != nil ? "photo_\(completedTask.id)" : nil
-                                                        let result = try await taskViewModel.completeTask(completedTask, photoURL: photoURL)
-                                                        
-                                                        // アクティビティ記録（完了数・XP・ストリーク）
-                                                        activityViewModel.recordTaskCompletion(
-                                                            xpGained: result.xpGained,
-                                                            totalTasksCount: taskViewModel.todayTasks.count
-                                                        )
-                                                        
-                                                        // XP加算し、レベルアップしたら専用ハプティック
-                                                        let leveledUp = activityViewModel.addXPToUser(result.xpGained)
-                                                        if leveledUp {
-                                                            HapticManager.shared.levelUp()
-                                                        }
-                                                        
-                                                        // アクティビティリングをリアルタイム更新
-                                                        updateActivityRing()
-                                                        activityViewModel.generateHeatmapData()
-                                                        
-                                                        giftViewModel.checkAndUnlockGifts(
-                                                            completedTask: result.completedTask,
-                                                            taskViewModel: taskViewModel,
-                                                            activityViewModel: activityViewModel
-                                                        )
-                                                    } catch {
-                                                        print("❌ エラー: \(error.localizedDescription)")
-                                                    }
-                                                }
-                                            }
-                                        )
-                                        .frame(width: 320)
-                                    }
-                                }
-                                .padding(.horizontal)
-                            }
-                        }
-                    }
-                    .padding(.vertical)
-                    
-                    // エピック進捗
-                    VStack(alignment: .leading, spacing: 16) {
-                        Text("進行中のエピック")
-                            .font(.system(size: 22, weight: .bold))
-                            .padding(.horizontal)
-                        
-                        ForEach(epicViewModel.epics.prefix(2)) { epic in
-                            EpicProgressCard(epic: epic)
-                                .padding(.horizontal)
-                        }
-                    }
-                    .padding(.vertical)
-                }
-                .padding(.bottom)
-            }
-            .navigationTitle("ダッシュボード")
+                dashboardScrollContent
+                    .navigationTitle("ダッシュボード")
             .background(
                 LinearGradient(
                     colors: [Color.blue.opacity(0.1), Color.purple.opacity(0.1)],
@@ -154,15 +41,154 @@ struct DashboardView: View {
             )) { gift in
                 CelebrationModal(message: "おめでとう🎉", subtitle: gift.title)
             }
+            .alert("データをリセット", isPresented: $showResetConfirm) {
+                Button("キャンセル", role: .cancel) {}
+                Button("リセット", role: .destructive) {
+                    _Concurrency.Task { @MainActor in
+                        await performReset()
+                    }
+                }
+            } message: {
+                Text("タスク、ギフト、エピック、継続日数などすべてのローカルデータが削除され、初期状態に戻ります。この操作は取り消せません。")
+            }
         }
         .task {
-            // ビューが表示されたときにデータを読み込む
             await taskViewModel.loadTasks()
             await activityViewModel.loadActivityData()
-            
-            // 初期のリングデータを計算
-            updateActivityRing()
         }
+    }
+    
+    private var dashboardScrollContent: some View {
+        ScrollView {
+            VStack(spacing: 24) {
+                UserInfoCard(user: activityViewModel.currentUser)
+                    .padding(.horizontal)
+                    .padding(.top)
+                
+                GiftyHeatmapView(
+                    heatmapData: activityViewModel.heatmapData,
+                    theme: Binding(
+                        get: { activityViewModel.heatmapTheme },
+                        set: { activityViewModel.heatmapTheme = $0; activityViewModel.saveData() }
+                    )
+                )
+                .padding(.horizontal)
+                
+                StreakCardView(streakData: activityViewModel.streakData)
+                    .padding(.horizontal)
+                
+                todayTasksSection
+                epicProgressSection
+                resetButtonSection
+            }
+            .padding(.bottom)
+        }
+    }
+    
+    private var todayTasksSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                Text("今日のタスク")
+                    .font(.system(size: 22, weight: .bold))
+                Spacer()
+                Text("\(taskViewModel.todayTasks.filter { $0.status == .completed }.count)/\(taskViewModel.todayTasks.count)")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(.secondary)
+            }
+            .padding(.horizontal)
+            
+            if taskViewModel.todayTasks.isEmpty {
+                EmptyStateView(
+                    icon: "checkmark.circle.fill",
+                    title: "今日のタスクはありません",
+                    message: "新しいタスクを作成しましょう"
+                )
+                .frame(height: 200)
+            } else {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 16) {
+                        ForEach(taskViewModel.todayTasks.prefix(5).indices, id: \.self) { index in
+                            dashboardTaskCard(for: index)
+                        }
+                    }
+                    .padding(.horizontal)
+                }
+            }
+        }
+        .padding(.vertical)
+    }
+    
+    private func dashboardTaskCard(for index: Int) -> some View {
+        TaskCardView(
+            task: Binding(
+                get: { taskViewModel.todayTasks[index] },
+                set: { taskViewModel.updateTask($0) }
+            ),
+            onComplete: { completedTask, photo in
+                _Concurrency.Task { @MainActor in
+                    do {
+                        let photoURL = photo != nil ? "photo_\(completedTask.id)" : nil
+                        let result = try await taskViewModel.completeTask(completedTask, photoURL: photoURL)
+                        activityViewModel.recordTaskCompletion(
+                            xpGained: result.xpGained,
+                            totalTasksCount: taskViewModel.todayTasks.count
+                        )
+                        let leveledUp = activityViewModel.addXPToUser(result.xpGained)
+                        if leveledUp { HapticManager.shared.levelUp() }
+                        activityViewModel.generateHeatmapData()
+                        giftViewModel.checkAndUnlockGifts(
+                            completedTask: result.completedTask,
+                            taskViewModel: taskViewModel,
+                            activityViewModel: activityViewModel
+                        )
+                    } catch {
+                        print("❌ エラー: \(error.localizedDescription)")
+                    }
+                }
+            }
+        )
+        .frame(width: 320)
+    }
+    
+    private var epicProgressSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("進行中のエピック")
+                .font(.system(size: 22, weight: .bold))
+                .padding(.horizontal)
+            ForEach(epicViewModel.epics.prefix(2)) { epic in
+                EpicProgressCard(epic: epic)
+                    .padding(.horizontal)
+            }
+        }
+        .padding(.vertical)
+    }
+    
+    private var resetButtonSection: some View {
+        Button {
+            showResetConfirm = true
+        } label: {
+            HStack {
+                Image(systemName: "arrow.counterclockwise")
+                Text("データをリセット")
+                    .font(.system(size: 14, weight: .medium))
+            }
+            .foregroundColor(.secondary)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 12)
+        }
+        .padding(.horizontal)
+        .padding(.bottom, 24)
+    }
+    
+    /// ローカルデータを初期状態にリセット
+    private func performReset() async {
+        taskViewModel.resetData()
+        await _Concurrency.Task.yield()
+        giftViewModel.resetData()
+        await _Concurrency.Task.yield()
+        activityViewModel.resetData()
+        await _Concurrency.Task.yield()
+        epicViewModel.resetData()
     }
     
     /// エピックの平均進捗率を計算
@@ -181,22 +207,10 @@ struct DashboardView: View {
         return totalProgress / Double(epics.count)
     }
     
-    /// アクティビティリングデータを更新
-    private func updateActivityRing() {
-        let completedCount = taskViewModel.todayTasks.filter { $0.status == .completed }.count
-        let totalCount = taskViewModel.todayTasks.count
-        let epicProgress = calculateEpicProgress()
-        
-        activityViewModel.calculateActivityRing(
-            completedTasksCount: completedCount,
-            totalTasksCount: totalCount,
-            epicProgress: epicProgress
-        )
-    }
 }
 
 
-// MARK: - Heatmap Card View
+// MARK: - Heatmap Card View（レガシー）
 struct HeatmapCardView: View {
     let heatmapData: [HeatmapData]
     

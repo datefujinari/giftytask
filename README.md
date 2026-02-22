@@ -6,8 +6,7 @@
 
 ```
 GiftyTask/
-├── ARCHITECTURE.md          # アーキテクチャ設計ドキュメント
-├── SCREEN_LIST.md           # 画面一覧ドキュメント
+├── DOCUMENTATION.md         # 開発ドキュメント（セットアップ・アーキテクチャ・トラブルシューティング）
 ├── README.md                # このファイル
 ├── Models/                  # データモデル
 │   ├── Task.swift
@@ -82,7 +81,7 @@ GiftyTask/
 
 #### Xcodeプロジェクトとして開く（推奨）
 
-詳細な手順は [`XCODE_SETUP.md`](XCODE_SETUP.md) を参照してください。
+詳細な手順は [`DOCUMENTATION.md`](DOCUMENTATION.md) を参照してください。
 
 **簡単な手順：**
 
@@ -168,5 +167,5 @@ TaskCardView(
 
 ## 開発者向け情報
 
-詳細なアーキテクチャ設計については `ARCHITECTURE.md` を、画面一覧については `SCREEN_LIST.md` を参照してください。
+セットアップ・アーキテクチャ・トラブルシューティングの詳細は **`DOCUMENTATION.md`** を参照してください。
 

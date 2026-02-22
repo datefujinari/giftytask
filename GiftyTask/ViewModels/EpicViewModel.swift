@@ -43,4 +43,10 @@ class EpicViewModel: ObservableObject {
         epics.removeAll { $0.id == epic.id }
         saveData()
     }
+    
+    /// ローカルデータを初期状態にリセット
+    func resetData() {
+        epics = []
+        saveData()
+    }
 }

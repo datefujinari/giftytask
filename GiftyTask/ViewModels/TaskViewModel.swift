@@ -135,6 +135,12 @@ class TaskViewModel: ObservableObject {
         }
         tasks = decoded
     }
+    
+    /// ローカルデータを初期状態にリセット
+    func resetData() {
+        tasks = []
+        saveData()
+    }
     // MARK: - Task CRUD Operations
     
     /// タスクを作成
