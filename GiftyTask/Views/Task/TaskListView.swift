@@ -130,11 +130,15 @@ struct TaskListView: View {
                     .environmentObject(taskViewModel)
                     .environmentObject(activityViewModel)
             }
+            .sheet(item: Binding(
+                get: { giftViewModel.lastUnlockedGift },
+                set: { giftViewModel.lastUnlockedGift = $0 }
+            )) { gift in
+                CelebrationModal(message: "おめでとう🎉", subtitle: gift.title)
+            }
         }
     }
 }
-
-// ... existing code ...
 // MARK: - Search Bar
 struct SearchBar: View {
     @Binding var text: String

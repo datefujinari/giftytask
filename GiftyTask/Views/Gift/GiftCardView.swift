@@ -5,10 +5,32 @@ struct GiftCardView: View {
     var gift: Gift
     var onUnlock: (() -> Void)? = nil
     var onEdit: (() -> Void)? = nil
+    var onUse: ((Gift) -> Void)? = nil
     
     @State private var isUnlocking = false
     @State private var didPlayUnlockFeedback = false
-    @State private var showCelebration = false
+    @State private var showReceiptModal = false
+    @State private var showUseConfirmModal = false
+    
+    @ViewBuilder
+    private func actionButtonContent(text: String, icon: String, isGreen: Bool = false) -> some View {
+        HStack(spacing: 8) {
+            Text(text)
+                .font(.system(size: 14, weight: .semibold))
+            Image(systemName: icon)
+                .font(.system(size: 16))
+        }
+        .foregroundColor(.white)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(
+            LinearGradient(
+                colors: isGreen ? [Color.green, Color.green.opacity(0.8)] : [Color.blue, Color.purple],
+                startPoint: .leading,
+                endPoint: .trailing
+            )
+        )
+        .cornerRadius(12)
+    }
     
     var body: some View {
         cardContent
@@ -19,172 +41,228 @@ struct GiftCardView: View {
                         HapticManager.shared.giftUnlocked()
                         didPlayUnlockFeedback = true
                     }
-                    if (gift.effectiveRewardUrl ?? "").isEmpty {
-                        showCelebration = true
-                    }
                 }
             }
-            .sheet(isPresented: $showCelebration) {
-                CelebrationModal(message: "おめでとう🎉", subtitle: gift.title)
+            .sheet(isPresented: $showUseConfirmModal) {
+                UseConfirmModal(
+                    onYes: {
+                        showUseConfirmModal = false
+                        onUse?(gift)
+                    },
+                    onNo: { showUseConfirmModal = false }
+                )
+            }
+            .sheet(isPresented: $showReceiptModal) {
+                let msg = (gift.receiptMessage ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+                CelebrationModal(
+                    message: msg.isEmpty ? "ギフトを獲得しました！" : msg,
+                    subtitle: gift.title
+                )
             }
     }
     
     private var cardContent: some View {
         VStack(alignment: .leading, spacing: 16) {
-            // ヘッダー
-            HStack {
-                // タイトル
-                Text(gift.title)
-                    .font(.system(size: 20, weight: .bold))
-                    .foregroundColor(gift.status == .locked ? .white.opacity(0.7) : .primary)
-                    .lineLimit(2)
-                
-                Spacer()
-                
-                if gift.status == .locked {
-                    HStack(spacing: 12) {
-                        if onEdit != nil {
-                            Button {
-                                onEdit?()
-                            } label: {
-                                Image(systemName: "pencil.circle.fill")
-                                    .font(.system(size: 22))
-                                    .foregroundColor(.white.opacity(0.8))
-                            }
-                        }
-                        Image(systemName: "lock.fill")
-                            .font(.system(size: 24))
-                            .foregroundColor(.white.opacity(0.6))
-                    }
-                }
-            }
-            
-            // 説明
+            headerView
             if let description = gift.description, !description.isEmpty {
                 Text(description)
                     .font(.system(size: 14))
                     .foregroundColor(gift.status == .locked ? .white.opacity(0.6) : .secondary)
                     .lineLimit(2)
             }
-            
+            Spacer(minLength: 16)
+            footerView
+        }
+        .padding(24)
+        .frame(minHeight: 220)
+        .frame(maxWidth: .infinity)
+        .background(cardBackgroundShape)
+        .overlay(unlockingOverlay)
+    }
+    
+    private var headerView: some View {
+        HStack {
+            Text(gift.title)
+                .font(.system(size: 20, weight: .bold))
+                .foregroundColor(gift.status == .locked ? .white.opacity(0.7) : .primary)
+                .lineLimit(2)
             Spacer()
-            
-            // フッター
+            if gift.status == .locked {
+                HStack(spacing: 12) {
+                    if onEdit != nil {
+                        Button { onEdit?() } label: {
+                            Image(systemName: "pencil.circle.fill")
+                                .font(.system(size: 22))
+                                .foregroundColor(.white.opacity(0.8))
+                        }
+                    }
+                    Image(systemName: "lock.fill")
+                        .font(.system(size: 24))
+                        .foregroundColor(.white.opacity(0.6))
+                }
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private var footerView: some View {
+        VStack(alignment: .leading, spacing: 16) {
             HStack {
-                // 価格
                 VStack(alignment: .leading, spacing: 4) {
                     Text("¥\(Int(gift.price))")
                         .font(.system(size: 24, weight: .bold))
                         .foregroundColor(gift.status == .locked ? .white.opacity(0.8) : .primary)
-                    
                     Text(gift.currency)
                         .font(.system(size: 12))
                         .foregroundColor(gift.status == .locked ? .white.opacity(0.5) : .secondary)
                 }
-                
                 Spacer()
-                
-                // ステータス（ロック解除時: rewardUrl があれば「利用する」でブラウザ、なければおめでとうモーダル）
-                if gift.status == .unlocked {
-                    if let urlString = gift.effectiveRewardUrl, !urlString.isEmpty, let url = URL(string: urlString) {
-                        Link(destination: url) {
-                            HStack(spacing: 8) {
-                                Text("利用する")
-                                    .font(.system(size: 14, weight: .semibold))
-                                Image(systemName: "arrow.right.circle.fill")
-                                    .font(.system(size: 16))
-                            }
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 10)
-                            .background(
-                                LinearGradient(
-                                    colors: [Color.blue, Color.purple],
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                )
-                            )
-                            .cornerRadius(12)
-                        }
-                        .transition(.scale(scale: 0.9).combined(with: .opacity))
-                    } else {
-                        Button {
-                            showCelebration = true
-                        } label: {
-                            HStack(spacing: 8) {
-                                Text("見る")
-                                    .font(.system(size: 14, weight: .semibold))
-                                Image(systemName: "gift.fill")
-                                    .font(.system(size: 16))
-                            }
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 10)
-                            .background(
-                                LinearGradient(
-                                    colors: [Color.blue, Color.purple],
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                )
-                            )
-                            .cornerRadius(12)
-                        }
-                        .transition(.scale(scale: 0.9).combined(with: .opacity))
+            }
+            footerButtons
+        }
+    }
+    
+    @ViewBuilder
+    private var footerButtons: some View {
+        HStack(spacing: 12) {
+            Spacer()
+            if gift.status == .unlocked {
+                if let urlString = gift.effectiveRewardUrl, !urlString.isEmpty, let url = URL(string: urlString) {
+                    Link(destination: url) {
+                        actionButtonContent(text: "利用する", icon: "arrow.right.circle.fill")
                     }
+                    .frame(width: 120, height: 44)
                 } else {
-                    // ロック済み表示
-                    HStack(spacing: 8) {
-                        Image(systemName: "lock.fill")
-                            .font(.system(size: 14))
-                        Text("ロック済み")
-                            .font(.system(size: 14, weight: .medium))
+                    Button { showReceiptModal = true } label: {
+                        actionButtonContent(text: "見る", icon: "gift.fill")
                     }
-                    .foregroundColor(.white.opacity(0.7))
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 10)
-                    .background(Color.white.opacity(0.2))
-                    .cornerRadius(12)
+                    .buttonStyle(.plain)
+                    .frame(width: 100, height: 44)
+                    Button { showUseConfirmModal = true } label: {
+                        actionButtonContent(text: "使う", icon: "checkmark.circle.fill", isGreen: true)
+                    }
+                    .buttonStyle(.plain)
+                    .frame(width: 100, height: 44)
                 }
+            } else {
+                HStack(spacing: 8) {
+                    Image(systemName: "lock.fill")
+                        .font(.system(size: 14))
+                    Text("ロック済み")
+                        .font(.system(size: 14, weight: .medium))
+                }
+                .foregroundColor(.white.opacity(0.7))
+                .frame(width: 120, height: 44)
+                .background(Color.white.opacity(0.2))
+                .cornerRadius(12)
             }
         }
-        .padding(24)
-        .frame(height: 200)
-        .frame(maxWidth: .infinity)
-        .background(
-            RoundedRectangle(cornerRadius: 20)
-                .fill(.ultraThinMaterial)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 20)
-                        .fill(Color.black.opacity(gift.status == .locked ? 0.4 : 0))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 20)
-                                .stroke(
-                                    LinearGradient(
-                                        colors: [
-                                            Color.white.opacity(gift.status == .locked ? 0.3 : 0.6),
-                                            Color.white.opacity(0.1)
-                                        ],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    ),
-                                    lineWidth: 1
-                                )
-                        )
-                )
-                .shadow(color: Color.black.opacity(0.2), radius: 10, x: 0, y: 5)
-        )
-        .overlay(
-            // アンロック中のオーバーレイ
-            Group {
-                if isUnlocking {
-                    Color.black.opacity(0.5)
-                        .cornerRadius(20)
-                    ProgressView()
-                        .tint(.white)
-                        .scaleEffect(1.5)
+    }
+    
+    private var cardBackgroundShape: some View {
+        RoundedRectangle(cornerRadius: 20)
+            .fill(.ultraThinMaterial)
+            .overlay(
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(Color.black.opacity(gift.status == .locked ? 0.4 : 0))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 20)
+                    .stroke(
+                        LinearGradient(
+                            colors: [
+                                Color.white.opacity(gift.status == .locked ? 0.3 : 0.6),
+                                Color.white.opacity(0.1)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1
+                    )
+            )
+            .shadow(color: Color.black.opacity(0.2), radius: 10, x: 0, y: 5)
+    }
+    
+    @ViewBuilder
+    private var unlockingOverlay: some View {
+        if isUnlocking {
+            Color.black.opacity(0.5)
+                .cornerRadius(20)
+            ProgressView()
+                .tint(.white)
+                .scaleEffect(1.5)
+        }
+    }
+}
+
+// MARK: - 使用確認モーダル
+struct UseConfirmModal: View {
+    let onYes: () -> Void
+    let onNo: () -> Void
+    @Environment(\.dismiss) private var dismiss
+    
+    var body: some View {
+        VStack(spacing: 24) {
+            Text("本当に使用しますか？")
+                .font(.system(size: 20, weight: .semibold))
+            HStack(spacing: 16) {
+                Button("いいえ") {
+                    onNo()
+                    dismiss()
                 }
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundColor(.secondary)
+                .padding(.horizontal, 24)
+                .padding(.vertical, 12)
+                .background(Color(.systemGray5))
+                .cornerRadius(12)
+                Button("はい") {
+                    onYes()
+                    dismiss()
+                }
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundColor(.white)
+                .padding(.horizontal, 24)
+                .padding(.vertical, 12)
+                .background(Color.accentColor)
+                .cornerRadius(12)
             }
-        )
+        }
+        .padding(40)
+    }
+}
+
+// MARK: - ギフト受け取り完了モーダル
+struct GiftReceivedModal: View {
+    let title: String
+    let onDismiss: () -> Void
+    
+    var body: some View {
+        VStack(spacing: 24) {
+            HStack {
+                Spacer()
+                Button {
+                    onDismiss()
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 28))
+                        .foregroundColor(.secondary)
+                }
+                .padding(.trailing, 8)
+                .padding(.top, 8)
+            }
+            Spacer()
+            Text("ギフトを受け取りました")
+                .font(.system(size: 24, weight: .bold))
+            if !title.isEmpty {
+                Text(title)
+                    .font(.system(size: 17))
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+            Spacer()
+        }
+        .padding(24)
     }
 }
 

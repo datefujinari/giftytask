@@ -21,6 +21,7 @@ struct Gift: Identifiable, Codable, Hashable {
     var updatedAt: Date
     var rewardUrl: String?
     var currentStreak: Int
+    var receiptMessage: String? // ギフト受け取り時（見るボタンタップ）のモーダルメッセージ
     
     // 初期化
     init(
@@ -42,7 +43,8 @@ struct Gift: Identifiable, Codable, Hashable {
         createdAt: Date = Date(),
         updatedAt: Date = Date(),
         rewardUrl: String? = nil,
-        currentStreak: Int = 0
+        currentStreak: Int = 0,
+        receiptMessage: String? = nil
     ) {
         self.id = id
         self.title = title
@@ -63,6 +65,7 @@ struct Gift: Identifiable, Codable, Hashable {
         self.updatedAt = updatedAt
         self.rewardUrl = rewardUrl
         self.currentStreak = currentStreak
+        self.receiptMessage = receiptMessage
     }
     
     var effectiveRewardUrl: String? { rewardUrl ?? giftURL }
@@ -82,7 +85,8 @@ struct Gift: Identifiable, Codable, Hashable {
     /// 条件達成時のアンロック（rewardUrl があれば設定、なければおめでとうモーダル用）
     mutating func unlockLocally(rewardURL: String? = nil) {
         self.status = .unlocked
-        self.giftURL = rewardURL ?? rewardUrl ?? Gift.defaultGiftURL
+        let url = rewardURL ?? rewardUrl
+        self.giftURL = (url != nil && !(url ?? "").isEmpty) ? url : nil  // nil ならおめでとうモーダル
         self.unlockedAt = Date()
         self.updatedAt = Date()
     }

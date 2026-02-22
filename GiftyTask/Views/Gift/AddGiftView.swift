@@ -24,7 +24,14 @@ struct AddGiftView: View {
     @State private var selectedStreakDays: Int = 7
     @State private var rewardUrlText: String = ""
     @State private var priceText: String = ""
+    @State private var receiptMessageText: String = ""
+    @State private var rewardUrlChoice: RewardUrlChoice? = nil  // nil=未選択, .setUrl=URL設定する, .noUrl=URL設定しない
     @FocusState private var focusedField: Field?
+    
+    enum RewardUrlChoice: String, CaseIterable {
+        case setUrl = "URLを設定する"
+        case noUrl = "URLを設定しない"
+    }
     
     enum Field { case title, description, rewardUrl, price }
     
@@ -81,6 +88,8 @@ struct AddGiftView: View {
                 selectedTargetIds = g.unlockCondition.targetIds
                 selectedStreakDays = g.unlockCondition.streakDays ?? 7
                 rewardUrlText = g.rewardUrl ?? ""
+                receiptMessageText = g.receiptMessage ?? ""
+                rewardUrlChoice = (g.rewardUrl != nil && !(g.rewardUrl ?? "").isEmpty) ? .setUrl : .noUrl
                 priceText = g.price > 0 ? "\(Int(g.price))" : ""
             }
             focusedField = .title
@@ -308,8 +317,35 @@ struct AddGiftView: View {
     private var step3Confirm: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
+                // URL設定の選択
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("リンク先URL（任意）")
+                    Text("リンク先URL")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(.secondary)
+                    HStack(spacing: 12) {
+                        ForEach(RewardUrlChoice.allCases, id: \.self) { choice in
+                            Button {
+                                HapticManager.shared.selectionChanged()
+                                rewardUrlChoice = choice
+                            } label: {
+                                Text(choice.rawValue)
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundColor(rewardUrlChoice == choice ? .white : .primary)
+                                    .padding(.horizontal, 16)
+                                    .padding(.vertical, 12)
+                                    .frame(maxWidth: .infinity)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .fill(rewardUrlChoice == choice ? Color.accentColor : Color(.systemGray5))
+                                    )
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+                // URL入力フィールド（.setUrl選択時のみ有効、それ以外は薄いグレーで無効化）
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("URL")
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundColor(.secondary)
                     TextField("https://", text: $rewardUrlText)
@@ -319,7 +355,25 @@ struct AddGiftView: View {
                         .font(.system(size: 15))
                         .padding(16)
                         .focused($focusedField, equals: .rewardUrl)
-                        .glassmorphism(cornerRadius: 14)
+                        .background(
+                            RoundedRectangle(cornerRadius: 14)
+                                .fill(Color(.systemGray6))
+                        )
+                        .foregroundColor(rewardUrlChoice == .setUrl ? .primary : .secondary)
+                        .opacity(rewardUrlChoice == .setUrl ? 1 : 0.7)
+                        .allowsHitTesting(rewardUrlChoice == .setUrl)
+                }
+                if rewardUrlChoice == .noUrl {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("受け取り時のメッセージ（任意）")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(.secondary)
+                        TextField("例: よく頑張ったね！お疲れ様", text: $receiptMessageText)
+                            .textFieldStyle(.plain)
+                            .font(.system(size: 15))
+                            .padding(16)
+                            .glassmorphism(cornerRadius: 14)
+                    }
                 }
                 VStack(alignment: .leading, spacing: 12) {
                     Text("金額（円）")
@@ -392,8 +446,16 @@ struct AddGiftView: View {
             .cornerRadius(14)
         }
         .buttonStyle(.plain)
-        .disabled(title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || priceValue <= 0)
-        .opacity(title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || priceValue <= 0 ? 0.6 : 1)
+        .disabled(
+            title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
+            priceValue <= 0 ||
+            rewardUrlChoice == nil
+        )
+        .opacity(
+            title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
+            priceValue <= 0 ||
+            rewardUrlChoice == nil ? 0.6 : 1
+        )
     }
     
     private var saveEditButton: some View {
@@ -427,14 +489,19 @@ struct AddGiftView: View {
             targetIds: selectedTargetIds,
             streakDays: (conditionType == .streak || conditionType == .streakDays) ? selectedStreakDays : nil
         )
-        let rewardUrl = rewardUrlText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : rewardUrlText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let rewardUrl: String? = (rewardUrlChoice == .setUrl && !rewardUrlText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            ? rewardUrlText.trimmingCharacters(in: .whitespacesAndNewlines)
+            : nil
+        let receiptMsg = receiptMessageText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let receiptMessage = receiptMsg.isEmpty ? nil : receiptMsg
         
         _ = giftViewModel.createGift(
             title: trimmedTitle,
             description: description.isEmpty ? nil : description,
             price: priceValue,
             unlockCondition: cond,
-            rewardUrl: rewardUrl
+            rewardUrl: rewardUrl,
+            receiptMessage: receiptMessage
         )
         
         HapticManager.shared.mediumImpact()
@@ -450,7 +517,11 @@ struct AddGiftView: View {
         gift.title = title.trimmingCharacters(in: .whitespacesAndNewlines)
         gift.description = description.isEmpty ? nil : description
         gift.price = priceValue
-        gift.rewardUrl = rewardUrlText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : rewardUrlText.trimmingCharacters(in: .whitespacesAndNewlines)
+        gift.rewardUrl = (rewardUrlChoice == .setUrl && !rewardUrlText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            ? rewardUrlText.trimmingCharacters(in: .whitespacesAndNewlines)
+            : nil
+        let receiptMsg = receiptMessageText.trimmingCharacters(in: .whitespacesAndNewlines)
+        gift.receiptMessage = receiptMsg.isEmpty ? nil : receiptMsg
         gift.unlockCondition = UnlockCondition(
             conditionType: conditionType,
             targetIds: selectedTargetIds,
@@ -481,7 +552,8 @@ extension GiftViewModel {
         unlockCondition: UnlockCondition,
         epicId: String? = nil,
         taskId: String? = nil,
-        rewardUrl: String? = nil
+        rewardUrl: String? = nil,
+        receiptMessage: String? = nil
     ) -> Gift {
         let epic = unlockCondition.conditionType == .epicCompletion ? unlockCondition.targetIds.first : nil
         let task = (unlockCondition.conditionType == .singleTask || unlockCondition.conditionType == .taskCompletion || unlockCondition.conditionType == .streak) ? unlockCondition.targetIds.first : nil
@@ -496,7 +568,8 @@ extension GiftViewModel {
             price: price,
             currency: "JPY",
             rewardUrl: rewardUrl,
-            currentStreak: 0
+            currentStreak: 0,
+            receiptMessage: receiptMessage
         )
         gifts.append(gift)
         saveData()

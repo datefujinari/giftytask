@@ -5,6 +5,8 @@ import Combine
 @MainActor
 class GiftViewModel: ObservableObject {
     @Published var gifts: [Gift] = []
+    @Published var lastUnlockedGift: Gift?  // タスク達成で解禁したギフト（モーダル表示用、表示後に nil に戻す）
+    @Published var lastUsedGiftTitle: String?  // 使用したギフトのタイトル（「ギフトを受け取りました」モーダル用）
     @Published var isLoading = false
     @Published var errorMessage: String?
     
@@ -147,6 +149,7 @@ class GiftViewModel: ObservableObject {
         gift.unlockLocally(rewardURL: gift.rewardUrl)
         gifts[index] = gift
         saveData()
+        lastUnlockedGift = gift
         HapticManager.shared.giftUnlocked()
     }
     
@@ -162,6 +165,18 @@ class GiftViewModel: ObservableObject {
         updated.updatedAt = Date()
         gifts[index] = updated
         saveData()
+    }
+    
+    /// ギフトを削除（使用済みとしてリストから除去）
+    func deleteGift(_ gift: Gift) {
+        gifts.removeAll { $0.id == gift.id }
+        saveData()
+    }
+    
+    /// ギフトを使用（削除し、「ギフトを受け取りました」モーダル用にタイトルを保持）
+    func useGift(_ gift: Gift) {
+        lastUsedGiftTitle = gift.title
+        deleteGift(gift)
     }
     
     /// UserDefaults から再読み込み（保存データがあれば優先）

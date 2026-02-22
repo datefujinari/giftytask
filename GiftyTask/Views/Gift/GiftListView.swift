@@ -58,9 +58,11 @@ struct GiftListView: View {
                         ScrollView {
                             LazyVStack(spacing: 20) {
                                 ForEach(filteredGifts) { gift in
-                                    GiftCardView(gift: gift, onEdit: {
-                                        editingGift = gift
-                                    })
+                                    GiftCardView(
+                                        gift: gift,
+                                        onEdit: { editingGift = gift },
+                                        onUse: { giftViewModel.useGift($0) }
+                                    )
                                     .padding(.horizontal)
                                 }
                             }
@@ -101,6 +103,15 @@ struct GiftListView: View {
                     .environmentObject(taskViewModel)
                     .environmentObject(activityViewModel)
                     .environmentObject(epicViewModel)
+            }
+            .sheet(isPresented: Binding(
+                get: { giftViewModel.lastUsedGiftTitle != nil },
+                set: { if !$0 { giftViewModel.lastUsedGiftTitle = nil } }
+            )) {
+                GiftReceivedModal(
+                    title: giftViewModel.lastUsedGiftTitle ?? "",
+                    onDismiss: { giftViewModel.lastUsedGiftTitle = nil }
+                )
             }
         }
     }
