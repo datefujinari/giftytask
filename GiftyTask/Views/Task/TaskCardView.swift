@@ -30,8 +30,8 @@ struct TaskCardView: View {
         .sheet(isPresented: $showCamera) {
             CameraView(selectedImage: $selectedPhoto, isPresented: $showCamera)
         }
-        .onChange(of: selectedPhoto) { newPhoto in
-            if let photo = newPhoto {
+        .onChange(of: selectedPhoto) { _, newValue in
+            if let photo = newValue {
                 completeTask(with: photo)
             }
         }
