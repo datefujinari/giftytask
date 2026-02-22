@@ -77,14 +77,7 @@ struct TaskListView: View {
                                                     HapticManager.shared.levelUp()
                                                 }
                                                 
-                                                let completedCount = taskViewModel.todayTasks.filter { $0.status == .completed }.count
-                                                let epicIds = epicViewModel.epics.map(\.id)
-                                                let epicProgress = taskViewModel.averageEpicProgress(epicIds: epicIds)
-                                                activityViewModel.calculateActivityRing(
-                                                    completedTasksCount: completedCount,
-                                                    totalTasksCount: taskViewModel.todayTasks.count,
-                                                    epicProgress: epicProgress
-                                                )
+                                                activityViewModel.generateHeatmapData()
                                                 
                                                 giftViewModel.checkAndUnlockGifts(
                                                     completedTask: result.completedTask,

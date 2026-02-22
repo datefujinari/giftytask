@@ -21,6 +21,7 @@ enum UserDefaultsStorage {
         static let dailyActivityData = "gifty_persist_daily_activity"
         static let streakData = "gifty_persist_streak_data"
         static let currentUser = "gifty_persist_current_user"
+        static let heatmapTheme = "gifty_persist_heatmap_theme"
     }
     
     static func encode<T: Encodable>(_ value: T) -> Data? {

@@ -7,6 +7,8 @@ struct DashboardView: View {
     @EnvironmentObject var giftViewModel: GiftViewModel
     @EnvironmentObject var epicViewModel: EpicViewModel
     @State private var showAddTask = false
+    @State private var heatmapTheme = HeatmapTheme()
+    @State private var showResetConfirm = false
     
     var body: some View {
         NavigationView {
@@ -18,26 +20,19 @@ struct DashboardView: View {
                         .padding(.horizontal)
                         .padding(.top)
                     
-                    // アクティビティリング
-                    ActivityRingCardView(
-                        ringData: activityViewModel.activityRingData,
-                        completedTasks: taskViewModel.todayTasks.filter { $0.status == .completed }.count,
-                        goalTasks: activityViewModel.dailyGoal,
-                        epicProgress: calculateEpicProgress(),
-                        activeDays: activityViewModel.calculateActiveDays(),
-                        totalDays: activityViewModel.activeDaysPeriod
+                    // アクティビティヒートマップ（GitHub風）
+                    GiftyHeatmapView(
+                        heatmapData: activityViewModel.heatmapData,
+                        theme: Binding(
+                            get: { activityViewModel.heatmapTheme },
+                            set: { activityViewModel.heatmapTheme = $0; activityViewModel.saveData() }
+                        )
                     )
                     .padding(.horizontal)
                     
                     // ストリーク情報
                     StreakCardView(streakData: activityViewModel.streakData)
                         .padding(.horizontal)
-                    
-                    // ヒートマップ
-                    if !activityViewModel.heatmapData.isEmpty {
-                        HeatmapCardView(heatmapData: activityViewModel.heatmapData)
-                            .padding(.horizontal)
-                    }
                     
                     // 今日のタスク
                     VStack(alignment: .leading, spacing: 16) {
@@ -89,7 +84,6 @@ struct DashboardView: View {
                                                         }
                                                         
                                                         // アクティビティリングをリアルタイム更新
-                                                        updateActivityRing()
                                                         activityViewModel.generateHeatmapData()
                                                         
                                                         giftViewModel.checkAndUnlockGifts(
@@ -124,6 +118,22 @@ struct DashboardView: View {
                         }
                     }
                     .padding(.vertical)
+                    
+                    // リセットボタン
+                    Button {
+                        showResetConfirm = true
+                    } label: {
+                        HStack {
+                            Image(systemName: "arrow.counterclockwise")
+                            Text("データをリセット")
+                                .font(.system(size: 14, weight: .medium))
+                        }
+                        .foregroundColor(.secondary)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                    }
+                    .padding(.horizontal)
+                    .padding(.bottom, 24)
                 }
                 .padding(.bottom)
             }
@@ -154,15 +164,27 @@ struct DashboardView: View {
             )) { gift in
                 CelebrationModal(message: "おめでとう🎉", subtitle: gift.title)
             }
+            .alert("データをリセット", isPresented: $showResetConfirm) {
+                Button("キャンセル", role: .cancel) {}
+                Button("リセット", role: .destructive) {
+                    performReset()
+                }
+            } message: {
+                Text("タスク、ギフト、エピック、継続日数などすべてのローカルデータが削除され、初期状態に戻ります。この操作は取り消せません。")
+            }
         }
         .task {
-            // ビューが表示されたときにデータを読み込む
             await taskViewModel.loadTasks()
             await activityViewModel.loadActivityData()
-            
-            // 初期のリングデータを計算
-            updateActivityRing()
         }
+    }
+    
+    /// ローカルデータを初期状態にリセット
+    private func performReset() {
+        taskViewModel.resetData()
+        giftViewModel.resetData()
+        activityViewModel.resetData()
+        epicViewModel.resetData()
     }
     
     /// エピックの平均進捗率を計算
@@ -181,22 +203,10 @@ struct DashboardView: View {
         return totalProgress / Double(epics.count)
     }
     
-    /// アクティビティリングデータを更新
-    private func updateActivityRing() {
-        let completedCount = taskViewModel.todayTasks.filter { $0.status == .completed }.count
-        let totalCount = taskViewModel.todayTasks.count
-        let epicProgress = calculateEpicProgress()
-        
-        activityViewModel.calculateActivityRing(
-            completedTasksCount: completedCount,
-            totalTasksCount: totalCount,
-            epicProgress: epicProgress
-        )
-    }
 }
 
 
-// MARK: - Heatmap Card View
+// MARK: - Heatmap Card View（レガシー）
 struct HeatmapCardView: View {
     let heatmapData: [HeatmapData]
     

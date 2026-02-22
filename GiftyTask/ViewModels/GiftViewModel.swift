@@ -183,4 +183,12 @@ class GiftViewModel: ObservableObject {
     func loadGifts() {
         loadData()
     }
+    
+    /// ローカルデータを初期状態にリセット
+    func resetData() {
+        gifts = []
+        lastUnlockedGift = nil
+        lastUsedGiftTitle = nil
+        saveData()
+    }
 }
