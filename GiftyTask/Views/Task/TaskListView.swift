@@ -7,6 +7,7 @@ struct TaskListView: View {
     @EnvironmentObject var giftViewModel: GiftViewModel
     @EnvironmentObject var epicViewModel: EpicViewModel
     @State private var showAddTask = false
+    @State private var showSendTask = false
     
     var body: some View {
         NavigationView {
@@ -99,6 +100,15 @@ struct TaskListView: View {
                 }
                 }
                 .navigationTitle("タスク")
+                .toolbar {
+                    ToolbarItem(placement: .primaryAction) {
+                        Button {
+                            showSendTask = true
+                        } label: {
+                            Image(systemName: "paperplane.fill")
+                        }
+                    }
+                }
                 .background(
                     LinearGradient(
                         colors: [Color.blue.opacity(0.1), Color.purple.opacity(0.1)],
@@ -122,6 +132,9 @@ struct TaskListView: View {
                 AddTaskView(isPresented: $showAddTask)
                     .environmentObject(taskViewModel)
                     .environmentObject(activityViewModel)
+            }
+            .sheet(isPresented: $showSendTask) {
+                SendTaskView()
             }
             .sheet(item: Binding(
                 get: { giftViewModel.lastUnlockedGift },

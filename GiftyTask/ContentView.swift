@@ -2,6 +2,7 @@ import SwiftUI
 
 // MARK: - Content View (メインタブビュー)
 struct ContentView: View {
+    @ObservedObject private var authManager = AuthManager.shared
     @StateObject private var taskViewModel = TaskViewModel()
     @StateObject private var activityViewModel = ActivityViewModel()
     @StateObject private var giftViewModel = GiftViewModel()
@@ -41,6 +42,15 @@ struct ContentView: View {
                 .tag(2)
         }
         .accentColor(.blue)
+        .task {
+            if authManager.currentUser == nil, !authManager.isLoading {
+                do {
+                    try await authManager.signInAnonymously()
+                } catch {
+                    print("❌ 匿名ログイン失敗: \(error.localizedDescription)")
+                }
+            }
+        }
     }
 }
 

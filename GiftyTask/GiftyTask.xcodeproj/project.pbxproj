@@ -25,6 +25,8 @@
 		2A7051652F165BA6000F5A24 /* GiftyTaskApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A7051602F165BA6000F5A24 /* GiftyTaskApp.swift */; };
 		2A7051682F165BB3000F5A24 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A7051672F165BB3000F5A24 /* ContentView.swift */; };
 		2A7051692F1B1787000F5A24 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 2A70515F2F165BA6000F5A24 /* Assets.xcassets */; };
+		2A77A0012F24900001F53AAE /* ActivityData+Heatmap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A77A0002F24900001F53AAE /* ActivityData+Heatmap.swift */; };
+		2A77A0032F24900002F53AAE /* GiftyHeatmapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A77A0022F24900002F53AAE /* GiftyHeatmapView.swift */; };
 		2A86FBAC2F447085004D9CF4 /* UserDefaultsStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A86FBAB2F447085004D9CF4 /* UserDefaultsStorage.swift */; };
 		2A86FBAE2F4470C9004D9CF4 /* EpicViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A86FBAD2F4470C9004D9CF4 /* EpicViewModel.swift */; };
 		2AC0255B2F2377AD00195B8F /* TaskViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AC0255A2F2377AD00195B8F /* TaskViewModel.swift */; };
@@ -32,8 +34,13 @@
 		2AE001022F25000100F53AAE /* AddTaskView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AE001012F25000100F53AAE /* AddTaskView.swift */; };
 		2AE002022F25000200F53AAE /* GiftViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AE002012F25000200F53AAE /* GiftViewModel.swift */; };
 		2AE003022F25000300F53AAE /* AddGiftView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AE003012F25000300F53AAE /* AddGiftView.swift */; };
-		2A77A0012F24900001F53AAE /* ActivityData+Heatmap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A77A0002F24900001F53AAE /* ActivityData+Heatmap.swift */; };
-		2A77A0032F24900002F53AAE /* GiftyHeatmapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A77A0022F24900002F53AAE /* GiftyHeatmapView.swift */; };
+		2AE4BD362F4C13D600A70AAF /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 2AE4BD352F4C13D600A70AAF /* FirebaseCore */; };
+		2AE4BD392F4C13D600A70AAF /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 2AE4BD382F4C13D600A70AAF /* FirebaseAuth */; };
+		2AE4BD3B2F4C13D600A70AAF /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 2AE4BD3A2F4C13D600A70AAF /* FirebaseFirestore */; };
+		2AE4BD032F4C140000A70AAF /* UserProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AE4BD012F4C140000A70AAF /* UserProfile.swift */; };
+		2AE4BD042F4C140000A70AAF /* AuthManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AE4BD022F4C140000A70AAF /* AuthManager.swift */; };
+		2AE4BD082F4C150000A70AAF /* TaskRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AE4BD062F4C150000A70AAF /* TaskRepository.swift */; };
+		2AE4BD092F4C150000A70AAF /* SendTaskView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AE4BD072F4C150000A70AAF /* SendTaskView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -79,6 +86,8 @@
 		2A7051602F165BA6000F5A24 /* GiftyTaskApp.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = GiftyTaskApp.swift; sourceTree = "<group>"; };
 		2A7051612F165BA6000F5A24 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		2A7051672F165BB3000F5A24 /* ContentView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		2A77A0002F24900001F53AAE /* ActivityData+Heatmap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ActivityData+Heatmap.swift"; sourceTree = "<group>"; };
+		2A77A0022F24900002F53AAE /* GiftyHeatmapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GiftyHeatmapView.swift; sourceTree = "<group>"; };
 		2A86FBAB2F447085004D9CF4 /* UserDefaultsStorage.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = UserDefaultsStorage.swift; sourceTree = "<group>"; };
 		2A86FBAD2F4470C9004D9CF4 /* EpicViewModel.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = EpicViewModel.swift; sourceTree = "<group>"; };
 		2AC0255A2F2377AD00195B8F /* TaskViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskViewModel.swift; sourceTree = "<group>"; };
@@ -86,8 +95,10 @@
 		2AE001012F25000100F53AAE /* AddTaskView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AddTaskView.swift; sourceTree = "<group>"; };
 		2AE002012F25000200F53AAE /* GiftViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GiftViewModel.swift; sourceTree = "<group>"; };
 		2AE003012F25000300F53AAE /* AddGiftView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddGiftView.swift; sourceTree = "<group>"; };
-		2A77A0002F24900001F53AAE /* ActivityData+Heatmap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ActivityData+Heatmap.swift"; sourceTree = "<group>"; };
-		2A77A0022F24900002F53AAE /* GiftyHeatmapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GiftyHeatmapView.swift; sourceTree = "<group>"; };
+		2AE4BD012F4C140000A70AAF /* UserProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserProfile.swift; sourceTree = "<group>"; };
+		2AE4BD022F4C140000A70AAF /* AuthManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthManager.swift; sourceTree = "<group>"; };
+		2AE4BD062F4C150000A70AAF /* TaskRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskRepository.swift; sourceTree = "<group>"; };
+		2AE4BD072F4C150000A70AAF /* SendTaskView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SendTaskView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -95,6 +106,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				2AE4BD362F4C13D600A70AAF /* FirebaseCore in Frameworks */,
+				2AE4BD392F4C13D600A70AAF /* FirebaseAuth in Frameworks */,
+				2AE4BD3B2F4C13D600A70AAF /* FirebaseFirestore in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -119,6 +133,7 @@
 			isa = PBXGroup;
 			children = (
 				2AC025592F23775400195B8F /* ViewModels */,
+				2AE4BD052F4C140000A70AAF /* Services */,
 				2A7051672F165BB3000F5A24 /* ContentView.swift */,
 				2A7051622F165BA6000F5A24 /* App */,
 				2A077DE52F14980000F530AE /* Models */,
@@ -194,6 +209,7 @@
 				2AE001012F25000100F53AAE /* AddTaskView.swift */,
 				2A077DDC2F14980000F530AE /* TaskCardView.swift */,
 				2A077DDD2F14980000F530AE /* TaskListView.swift */,
+				2AE4BD072F4C150000A70AAF /* SendTaskView.swift */,
 			);
 			path = Task;
 			sourceTree = "<group>";
@@ -217,6 +233,7 @@
 				2A077DE22F14980000F530AE /* Gift.swift */,
 				2A077DE32F14980000F530AE /* Task.swift */,
 				2A077DE42F14980000F530AE /* User.swift */,
+				2AE4BD012F4C140000A70AAF /* UserProfile.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -238,6 +255,15 @@
 				2A7051612F165BA6000F5A24 /* Info.plist */,
 			);
 			path = App;
+			sourceTree = "<group>";
+		};
+		2AE4BD052F4C140000A70AAF /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				2AE4BD022F4C140000A70AAF /* AuthManager.swift */,
+				2AE4BD062F4C150000A70AAF /* TaskRepository.swift */,
+			);
+			path = Services;
 			sourceTree = "<group>";
 		};
 		2AC025592F23775400195B8F /* ViewModels */ = {
@@ -339,6 +365,9 @@
 				Base,
 			);
 			mainGroup = 2A077D8B2F14971E00F530AE;
+			packageReferences = (
+				2AE4BD372F4C13D600A70AAF /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+			);
 			productRefGroup = 2A077D952F14971E00F530AE /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -406,6 +435,10 @@
 				2A077DFB2F14980000F530AE /* Task.swift in Sources */,
 				2AC0255B2F2377AD00195B8F /* TaskViewModel.swift in Sources */,
 				2AD530362F2458D30053F87D /* ActivityViewModel.swift in Sources */,
+				2AE4BD032F4C140000A70AAF /* UserProfile.swift in Sources */,
+				2AE4BD042F4C140000A70AAF /* AuthManager.swift in Sources */,
+				2AE4BD082F4C150000A70AAF /* TaskRepository.swift in Sources */,
+				2AE4BD092F4C150000A70AAF /* SendTaskView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -570,7 +603,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "";
-				INFOPLIST_KEY_LSApplicationCategoryType = "";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";
 				INFOPLIST_KEY_NSCalendarsUsageDescription = "タスク完了の写真証拠を撮影するためにカメラへのアクセスが必要です";
 				INFOPLIST_KEY_NSCameraUsageDescription = "タスク完了の証拠写真を撮影するためにカメラを使用します。";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -603,7 +636,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "";
-				INFOPLIST_KEY_LSApplicationCategoryType = "";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";
 				INFOPLIST_KEY_NSCalendarsUsageDescription = "タスク完了の写真証拠を撮影するためにカメラへのアクセスが必要です";
 				INFOPLIST_KEY_NSCameraUsageDescription = "タスク完了の証拠写真を撮影するためにカメラを使用します。";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -736,6 +769,35 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		2AE4BD372F4C13D600A70AAF /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 12.9.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		2AE4BD352F4C13D600A70AAF /* FirebaseCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 2AE4BD372F4C13D600A70AAF /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseCore;
+		};
+		2AE4BD382F4C13D600A70AAF /* FirebaseAuth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 2AE4BD372F4C13D600A70AAF /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAuth;
+		};
+		2AE4BD3A2F4C13D600A70AAF /* FirebaseFirestore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 2AE4BD372F4C13D600A70AAF /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseFirestore;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 2A077D8C2F14971E00F530AE /* Project object */;
 }
