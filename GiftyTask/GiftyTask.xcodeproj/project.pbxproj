@@ -34,13 +34,14 @@
 		2AE001022F25000100F53AAE /* AddTaskView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AE001012F25000100F53AAE /* AddTaskView.swift */; };
 		2AE002022F25000200F53AAE /* GiftViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AE002012F25000200F53AAE /* GiftViewModel.swift */; };
 		2AE003022F25000300F53AAE /* AddGiftView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AE003012F25000300F53AAE /* AddGiftView.swift */; };
-		2AE4BD362F4C13D600A70AAF /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 2AE4BD352F4C13D600A70AAF /* FirebaseCore */; };
-		2AE4BD392F4C13D600A70AAF /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 2AE4BD382F4C13D600A70AAF /* FirebaseAuth */; };
-		2AE4BD3B2F4C13D600A70AAF /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 2AE4BD3A2F4C13D600A70AAF /* FirebaseFirestore */; };
 		2AE4BD032F4C140000A70AAF /* UserProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AE4BD012F4C140000A70AAF /* UserProfile.swift */; };
 		2AE4BD042F4C140000A70AAF /* AuthManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AE4BD022F4C140000A70AAF /* AuthManager.swift */; };
 		2AE4BD082F4C150000A70AAF /* TaskRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AE4BD062F4C150000A70AAF /* TaskRepository.swift */; };
 		2AE4BD092F4C150000A70AAF /* SendTaskView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AE4BD072F4C150000A70AAF /* SendTaskView.swift */; };
+		2AE4BD0B2F4C160000A70AAF /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AE4BD0A2F4C160000A70AAF /* SettingsView.swift */; };
+		2AE4BD362F4C13D600A70AAF /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 2AE4BD352F4C13D600A70AAF /* FirebaseCore */; };
+		2AE4BD392F4C13D600A70AAF /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 2AE4BD382F4C13D600A70AAF /* FirebaseAuth */; };
+		2AE4BD3B2F4C13D600A70AAF /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 2AE4BD3A2F4C13D600A70AAF /* FirebaseFirestore */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -99,6 +100,7 @@
 		2AE4BD022F4C140000A70AAF /* AuthManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthManager.swift; sourceTree = "<group>"; };
 		2AE4BD062F4C150000A70AAF /* TaskRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskRepository.swift; sourceTree = "<group>"; };
 		2AE4BD072F4C150000A70AAF /* SendTaskView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SendTaskView.swift; sourceTree = "<group>"; };
+		2AE4BD0A2F4C160000A70AAF /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -220,8 +222,17 @@
 				2A077DD82F14980000F530AE /* Activity */,
 				2A077DDB2F14980000F530AE /* Gift */,
 				2A077DDE2F14980000F530AE /* Task */,
+				2AE4BD0C2F4C160000A70AAF /* Settings */,
 			);
 			path = Views;
+			sourceTree = "<group>";
+		};
+		2AE4BD0C2F4C160000A70AAF /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				2AE4BD0A2F4C160000A70AAF /* SettingsView.swift */,
+			);
+			path = Settings;
 			sourceTree = "<group>";
 		};
 		2A077DE52F14980000F530AE /* Models */ = {
@@ -257,15 +268,6 @@
 			path = App;
 			sourceTree = "<group>";
 		};
-		2AE4BD052F4C140000A70AAF /* Services */ = {
-			isa = PBXGroup;
-			children = (
-				2AE4BD022F4C140000A70AAF /* AuthManager.swift */,
-				2AE4BD062F4C150000A70AAF /* TaskRepository.swift */,
-			);
-			path = Services;
-			sourceTree = "<group>";
-		};
 		2AC025592F23775400195B8F /* ViewModels */ = {
 			isa = PBXGroup;
 			children = (
@@ -275,6 +277,15 @@
 				2AC0255A2F2377AD00195B8F /* TaskViewModel.swift */,
 			);
 			path = ViewModels;
+			sourceTree = "<group>";
+		};
+		2AE4BD052F4C140000A70AAF /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				2AE4BD022F4C140000A70AAF /* AuthManager.swift */,
+				2AE4BD062F4C150000A70AAF /* TaskRepository.swift */,
+			);
+			path = Services;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -341,7 +352,7 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 1530;
-				LastUpgradeCheck = 1530;
+				LastUpgradeCheck = 2620;
 				TargetAttributes = {
 					2A077D932F14971E00F530AE = {
 						CreatedOnToolsVersion = 15.3;
@@ -439,6 +450,7 @@
 				2AE4BD042F4C140000A70AAF /* AuthManager.swift in Sources */,
 				2AE4BD082F4C150000A70AAF /* TaskRepository.swift in Sources */,
 				2AE4BD092F4C150000A70AAF /* SendTaskView.swift in Sources */,
+				2AE4BD0B2F4C160000A70AAF /* SettingsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -530,6 +542,7 @@
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
@@ -586,6 +599,7 @@
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				VALIDATE_PRODUCT = YES;
 			};
@@ -660,7 +674,6 @@
 		2A077DBC2F14972200F530AE /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
@@ -679,7 +692,6 @@
 		2A077DBD2F14972200F530AE /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
@@ -698,7 +710,6 @@
 		2A077DBF2F14972200F530AE /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -715,7 +726,6 @@
 		2A077DC02F14972200F530AE /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;

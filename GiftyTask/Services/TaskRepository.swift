@@ -75,8 +75,24 @@ final class TaskRepository: ObservableObject {
         let giftRef = db.collection(giftsCollection).document(giftId)
         let taskRef = db.collection(tasksCollection).document(taskId)
         
-        try await giftRef.setData(giftData)
-        try await taskRef.setData(taskData)
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            giftRef.setData(giftData, merge: true) { error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                } else {
+                    continuation.resume()
+                }
+            }
+        }
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            taskRef.setData(taskData, merge: true) { error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                } else {
+                    continuation.resume()
+                }
+            }
+        }
         
         return (taskId, giftId)
     }

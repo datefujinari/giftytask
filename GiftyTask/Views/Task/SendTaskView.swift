@@ -3,7 +3,7 @@ import SwiftUI
 // MARK: - タスク送信画面（他ユーザーへタスク＋ギフトを送る）
 struct SendTaskView: View {
     @Environment(\.dismiss) private var dismiss
-    @StateObject private var taskRepo = TaskRepository.shared
+    @ObservedObject private var taskRepo = TaskRepository.shared
     
     @State private var taskTitle = ""
     @State private var giftName = ""
@@ -40,7 +40,9 @@ struct SendTaskView: View {
                 }
                 Section {
                     Button {
-                        sendTask()
+                        Task { @MainActor in
+                            await sendTask()
+                        }
                     } label: {
                         HStack {
                             Spacer()
@@ -84,26 +86,20 @@ struct SendTaskView: View {
             && !receiverId.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
     
-    private func sendTask() {
+    private func sendTask() async {
         errorMessage = nil
         isSending = true
-        Task {
-            do {
-                _ = try await taskRepo.sendTask(
-                    title: taskTitle,
-                    giftName: giftName,
-                    receiverId: receiverId.trimmingCharacters(in: .whitespacesAndNewlines)
-                )
-                await MainActor.run {
-                    isSending = false
-                    showSuccess = true
-                }
-            } catch {
-                await MainActor.run {
-                    isSending = false
-                    errorMessage = error.localizedDescription
-                }
-            }
+        do {
+            _ = try await taskRepo.sendTask(
+                title: taskTitle,
+                giftName: giftName,
+                receiverId: receiverId.trimmingCharacters(in: .whitespacesAndNewlines)
+            )
+            isSending = false
+            showSuccess = true
+        } catch {
+            isSending = false
+            errorMessage = error.localizedDescription
         }
     }
 }

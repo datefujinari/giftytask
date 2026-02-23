@@ -74,20 +74,39 @@ final class AuthManager: ObservableObject {
             "friend_list": profile.friendList
         ]
         
-        try db.collection(usersCollection).document(uid).setData(data, merge: true)
+        let ref = db.collection(usersCollection).document(uid)
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            ref.setData(data, merge: true) { error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                } else {
+                    continuation.resume()
+                }
+            }
+        }
         self.userProfile = profile
     }
     
     /// Firestore からユーザープロフィールを取得
     func fetchUserProfile(uid: String) async {
         do {
-            let doc = try await db.collection(usersCollection).document(uid).getDocument()
+            let ref = db.collection(usersCollection).document(uid)
+            let doc = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<DocumentSnapshot, Error>) in
+                ref.getDocument { snapshot, error in
+                    if let error = error {
+                        continuation.resume(throwing: error)
+                    } else if let snapshot = snapshot {
+                        continuation.resume(returning: snapshot)
+                    } else {
+                        continuation.resume(throwing: NSError(domain: "AuthManager", code: -1, userInfo: [NSLocalizedDescriptionKey: "Unknown error"]))
+                    }
+                }
+            }
             if doc.exists, let data = doc.data() {
                 let displayName = data["display_name"] as? String ?? "ユーザー"
                 let friendList = data["friend_list"] as? [String] ?? []
                 userProfile = UserProfile(uid: uid, displayName: displayName, friendList: friendList)
             } else {
-                // ドキュメントがなければ作成（fetchUserProfile は呼び出し元が MainActor を想定）
                 try await createOrUpdateUserProfile(uid: uid, displayName: "ユーザー")
             }
         } catch {

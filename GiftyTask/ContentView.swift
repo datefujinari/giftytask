@@ -40,15 +40,21 @@ struct ContentView: View {
                     Label("ギフトBOX", systemImage: "gift.fill")
                 }
                 .tag(2)
+            
+            SettingsView()
+                .tabItem {
+                    Label("設定", systemImage: "gearshape.fill")
+                }
+                .tag(3)
         }
         .accentColor(.blue)
         .task {
-            if authManager.currentUser == nil, !authManager.isLoading {
-                do {
-                    try await authManager.signInAnonymously()
-                } catch {
-                    print("❌ 匿名ログイン失敗: \(error.localizedDescription)")
-                }
+            // 実機テスト用: 未ログインなら匿名ログインを実行
+            guard authManager.currentUser == nil, !authManager.isLoading else { return }
+            do {
+                try await authManager.signInAnonymously()
+            } catch {
+                print("❌ 匿名ログイン失敗: \(error.localizedDescription)")
             }
         }
     }

@@ -17,11 +17,47 @@
 ### 技術スタック
 - SwiftUI / Combine / Taptic Engine
 - UserDefaults（ローカル永続化）
-- Firebase（予定）
+- Firebase（Auth / Firestore）
 
 ---
 
-## 2. アーキテクチャ
+## 2. Firebase コンソールの確認（Auth/Firestore 連携時）
+
+実機で「データが保存されない・取得できない」場合は以下を確認してください。
+
+### 2.1 Authentication：匿名認証の有効化（必須）
+
+- **場所**: Firebaseコンソール > 構築 > Authentication > Sign-in method
+- **確認**: 「匿名 (Anonymous)」を **有効** にする
+- **理由**: 無効だと `signInAnonymously()` がエラーになり、UID が発行されずタスクの sender_id が空になってセキュリティルールで弾かれる
+
+### 2.2 Firestore：データ型（日付）
+
+Swift の `Date` と Firestore の `Timestamp` を扱う場合は、FirebaseFirestoreSwift の `@ServerTimestamp` などを検討する。現状の tasks/gifts は日付フィールドを [String: Any] で書き込んでいるため、必要に応じて追加する。
+
+### 2.3 Firestore：複合インデックス
+
+「receiver_id が自分」かつ「createdAt 順」など複合条件でクエリする場合、複合インデックスが必要。  
+アプリ実行時にコンソールに表示される `https://console.firebase.google.com/...` のURLを開くと、必要なインデックス作成画面に遷移できる。
+
+### 2.4 Firestore：セキュリティルール例
+
+「自分の関わるタスクだけ」に絞る例:
+
+```javascript
+match /tasks/{taskId} {
+  allow read, write: if request.auth != null &&
+    (request.auth.uid == resource.data.sender_id || request.auth.uid == request.resource.data.sender_id ||
+     request.auth.uid == resource.data.receiver_id || request.auth.uid == request.resource.data.receiver_id);
+}
+match /gifts/{giftId} {
+  allow read, write: if request.auth != null;
+}
+```
+
+---
+
+## 3. アーキテクチャ
 
 ```
 GiftyTask/
@@ -38,7 +74,7 @@ GiftyTask/
 
 ---
 
-## 3. セットアップ
+## 4. セットアップ
 
 ### 3.1 Xcodeでプロジェクトを開く
 
@@ -64,7 +100,7 @@ Info.plist またはプロジェクトの Info タブで追加:
 
 ---
 
-## 4. 実機で動作確認する手順
+## 5. 実機で動作確認する手順
 
 1. **プロジェクトを開く**: `GiftyTask/GiftyTask.xcodeproj`
 2. **iPhoneをUSB接続**し、デバイス選択で実機を選択
@@ -83,7 +119,7 @@ Info.plist またはプロジェクトの Info タブで追加:
 
 ---
 
-## 5. プロジェクトチェックリスト
+## 6. プロジェクトチェックリスト
 
 ### ファイル・ターゲット確認
 - [ ] App/GiftyTaskApp.swift、ContentView.swift が1つずつ
@@ -96,7 +132,7 @@ Info.plist またはプロジェクトの Info タブで追加:
 
 ---
 
-## 6. トラブルシューティング
+## 7. トラブルシューティング
 
 ### 重複ファイルエラー（"Multiple commands produce" / "Filename used twice"）
 
@@ -122,7 +158,7 @@ Info.plist またはプロジェクトの Info タブで追加:
 
 ---
 
-## 7. 画面一覧（概要）
+## 8. 画面一覧（概要）
 
 - **認証**: WelcomeView, SignInView, OnboardingView
 - **メイン**: HomeView（タブルート）, TaskListView, TaskDetailView, TaskCardView
@@ -130,11 +166,11 @@ Info.plist またはプロジェクトの Info タブで追加:
 - **ギフト**: GiftListView, GiftCardView, GiftUnlockView
 - **アクティビティ**: ActivityView, ActivityRingView, GiftyHeatmapView, StatisticsView
 - **ソーシャル**: FriendListView, GiftAssignmentView
-- **設定**: ProfileView, SettingsView
+- **設定**: SettingsView（自分のUID表示・タップでコピー。他者にタスクを送る際の相手UID入力に利用）, ProfileView
 
 ---
 
-## 8. ヒートマップ機能
+## 9. ヒートマップ機能
 
 GitHub風ヒートマップ（GiftyHeatmapView）の仕様:
 
@@ -144,6 +180,6 @@ GitHub風ヒートマップ（GiftyHeatmapView）の仕様:
 
 ---
 
-## 9. 参考
+## 10. 参考
 
 - プロジェクトルートの `README.md` にサンプルコードやライセンス情報あり
