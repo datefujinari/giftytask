@@ -1,0 +1,31 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ユーザープロフィール: 自分のドキュメントのみ
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // タスク: 送信者 or 受信者のみ
+    match /tasks/{taskId} {
+      // 読取: 自分が送信者または受信者
+      allow read: if request.auth != null
+        && (request.auth.uid == resource.data.sender_id
+            || request.auth.uid == resource.data.receiver_id);
+      // 作成: 自分が送信者であること（resource は存在しないので request.resource のみ使用）
+      allow create: if request.auth != null
+        && request.auth.uid == request.resource.data.sender_id;
+      // 更新・削除: 自分が送信者または受信者
+      allow update, delete: if request.auth != null
+        && (request.auth.uid == resource.data.sender_id
+            || request.auth.uid == resource.data.receiver_id);
+    }
+
+    // ギフト: タスク送信時に作成され、受信者がアンロックする。認証済みなら読み書き許可
+    match /gifts/{giftId} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}

@@ -25,6 +25,7 @@
 		2A7051652F165BA6000F5A24 /* GiftyTaskApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A7051602F165BA6000F5A24 /* GiftyTaskApp.swift */; };
 		2A7051682F165BB3000F5A24 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A7051672F165BB3000F5A24 /* ContentView.swift */; };
 		2A7051692F1B1787000F5A24 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 2A70515F2F165BA6000F5A24 /* Assets.xcassets */; };
+		2A70516B2F165BA6000F5A24 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 2A70516A2F165BA6000F5A24 /* GoogleService-Info.plist */; };
 		2A77A0012F24900001F53AAE /* ActivityData+Heatmap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A77A0002F24900001F53AAE /* ActivityData+Heatmap.swift */; };
 		2A77A0032F24900002F53AAE /* GiftyHeatmapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A77A0022F24900002F53AAE /* GiftyHeatmapView.swift */; };
 		2A86FBAC2F447085004D9CF4 /* UserDefaultsStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A86FBAB2F447085004D9CF4 /* UserDefaultsStorage.swift */; };
@@ -86,6 +87,7 @@
 		2A70515F2F165BA6000F5A24 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		2A7051602F165BA6000F5A24 /* GiftyTaskApp.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = GiftyTaskApp.swift; sourceTree = "<group>"; };
 		2A7051612F165BA6000F5A24 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		2A70516A2F165BA6000F5A24 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		2A7051672F165BB3000F5A24 /* ContentView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		2A77A0002F24900001F53AAE /* ActivityData+Heatmap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ActivityData+Heatmap.swift"; sourceTree = "<group>"; };
 		2A77A0022F24900002F53AAE /* GiftyHeatmapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GiftyHeatmapView.swift; sourceTree = "<group>"; };
@@ -263,6 +265,7 @@
 				2A70515E2F165BA6000F5A24 /* Preview Content */,
 				2A70515F2F165BA6000F5A24 /* Assets.xcassets */,
 				2A7051602F165BA6000F5A24 /* GiftyTaskApp.swift */,
+				2A70516A2F165BA6000F5A24 /* GoogleService-Info.plist */,
 				2A7051612F165BA6000F5A24 /* Info.plist */,
 			);
 			path = App;
@@ -397,6 +400,7 @@
 			files = (
 				2A7051632F165BA6000F5A24 /* Preview Assets.xcassets in Resources */,
 				2A7051692F1B1787000F5A24 /* Assets.xcassets in Resources */,
+				2A70516B2F165BA6000F5A24 /* GoogleService-Info.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

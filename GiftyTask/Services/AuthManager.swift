@@ -29,7 +29,7 @@ final class AuthManager: ObservableObject {
     
     private init() {
         authStateListener = auth.addStateDidChangeListener { [weak self] _, user in
-            Task { @MainActor in
+            _Concurrency.Task { @MainActor in
                 self?.currentUser = user
                 if let uid = user?.uid {
                     await self?.fetchUserProfile(uid: uid)
@@ -75,33 +75,15 @@ final class AuthManager: ObservableObject {
         ]
         
         let ref = db.collection(usersCollection).document(uid)
-        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            ref.setData(data, merge: true) { error in
-                if let error = error {
-                    continuation.resume(throwing: error)
-                } else {
-                    continuation.resume()
-                }
-            }
-        }
-        self.userProfile = profile
+        try await setDataAsync(ref: ref, data: data)
+        userProfile = profile
     }
     
     /// Firestore からユーザープロフィールを取得
     func fetchUserProfile(uid: String) async {
         do {
             let ref = db.collection(usersCollection).document(uid)
-            let doc = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<DocumentSnapshot, Error>) in
-                ref.getDocument { snapshot, error in
-                    if let error = error {
-                        continuation.resume(throwing: error)
-                    } else if let snapshot = snapshot {
-                        continuation.resume(returning: snapshot)
-                    } else {
-                        continuation.resume(throwing: NSError(domain: "AuthManager", code: -1, userInfo: [NSLocalizedDescriptionKey: "Unknown error"]))
-                    }
-                }
-            }
+            let doc = try await getDocumentAsync(ref: ref)
             if doc.exists, let data = doc.data() {
                 let displayName = data["display_name"] as? String ?? "ユーザー"
                 let friendList = data["friend_list"] as? [String] ?? []
@@ -122,6 +104,34 @@ final class AuthManager: ObservableObject {
             displayName: displayName,
             friendList: userProfile?.friendList ?? []
         )
+    }
+    
+    // MARK: - Firestore 非同期ヘルパー（continuation を分離して型推論・Decoder 誤解を防止）
+    
+    private func setDataAsync(ref: DocumentReference, data: [String: Any]) async throws {
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            ref.setData(data, merge: true) { error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                } else {
+                    continuation.resume()
+                }
+            }
+        }
+    }
+    
+    private func getDocumentAsync(ref: DocumentReference) async throws -> DocumentSnapshot {
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<DocumentSnapshot, Error>) in
+            ref.getDocument { snapshot, error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                } else if let snapshot = snapshot {
+                    continuation.resume(returning: snapshot)
+                } else {
+                    continuation.resume(throwing: NSError(domain: "AuthManager", code: -1, userInfo: [NSLocalizedDescriptionKey: "Unknown error"]))
+                }
+            }
+        }
     }
     
     // MARK: - ログアウト
