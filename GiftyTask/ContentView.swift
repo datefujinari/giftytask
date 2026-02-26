@@ -41,11 +41,19 @@ struct ContentView: View {
                 }
                 .tag(2)
             
+            ReceivedBoxView()
+                .environmentObject(taskViewModel)
+                .environmentObject(giftViewModel)
+                .tabItem {
+                    Label("受信BOX", systemImage: "tray.and.arrow.down.fill")
+                }
+                .tag(3)
+            
             SettingsView()
                 .tabItem {
                     Label("設定", systemImage: "gearshape.fill")
                 }
-                .tag(3)
+                .tag(4)
         }
         .accentColor(.blue)
         .task {

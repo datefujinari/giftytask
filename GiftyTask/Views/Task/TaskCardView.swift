@@ -70,7 +70,7 @@ struct TaskCardView: View {
             dueDateLabel
             verificationModeLabel
             Spacer()
-            xpRewardLabel
+            fromLabel
         }
     }
     
@@ -101,16 +101,17 @@ struct TaskCardView: View {
         .foregroundColor(.secondary)
     }
     
-    // MARK: - XP Reward Label
-    private var xpRewardLabel: some View {
-        Label {
-            Text("\(task.xpReward) XP")  // viewModel.taskからtaskに変更
-                .font(.system(size: 12, weight: .semibold))
-        } icon: {
-            Image(systemName: "star.fill")
+    // MARK: - From Label（送り主表示）
+    @ViewBuilder
+    private var fromLabel: some View {
+        let fromText = task.fromDisplayName ?? task.senderId
+        if let id = fromText, !id.isEmpty {
+            Text("From: \(id)")
                 .font(.system(size: 12))
+                .foregroundColor(.secondary)
+                .lineLimit(1)
+                .truncationMode(.middle)
         }
-        .foregroundColor(.orange)
     }
     
     // MARK: - Complete Button

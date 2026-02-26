@@ -17,6 +17,9 @@ struct Task: Identifiable, Codable, Hashable {
     var xpReward: Int // 完了時のXP報酬
     var rewardDisplayName: String? // 達成時に解禁したい報酬名（Giftの内容）
     var isRoutine: Bool // 毎日ルーチンタスクかどうか
+    var senderId: String? // 届いたタスクの場合の送り主UID（From表示用）
+    var fromDisplayName: String? // 送り主の表示名（任意）
+    var rewardId: String? // 届いたタスクの場合の紐づくギフトID（完了時にFirestore更新用）
     
     // 初期化
     init(
@@ -34,7 +37,10 @@ struct Task: Identifiable, Codable, Hashable {
         updatedAt: Date = Date(),
         xpReward: Int = 10,
         rewardDisplayName: String? = nil,
-        isRoutine: Bool = false
+        isRoutine: Bool = false,
+        senderId: String? = nil,
+        fromDisplayName: String? = nil,
+        rewardId: String? = nil
     ) {
         self.id = id
         self.title = title
@@ -51,6 +57,9 @@ struct Task: Identifiable, Codable, Hashable {
         self.xpReward = xpReward
         self.rewardDisplayName = rewardDisplayName
         self.isRoutine = isRoutine
+        self.senderId = senderId
+        self.fromDisplayName = fromDisplayName
+        self.rewardId = rewardId
     }
     
     // 完了処理

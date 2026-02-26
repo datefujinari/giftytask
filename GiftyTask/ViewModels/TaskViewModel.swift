@@ -259,6 +259,11 @@ class TaskViewModel: ObservableObject {
         tasks[index] = completedTask
         saveData()
         
+        // 届いたタスク（Firestore連携）の場合は status を completed にし、ギフトをアンロック
+        if completedTask.senderId != nil, let rewardId = completedTask.rewardId {
+            try? await TaskRepository.shared.completeReceivedTask(taskId: completedTask.id, rewardId: rewardId)
+        }
+        
         let xpGained = completedTask.xpReward
         
         // ハプティックフィードバック
@@ -354,6 +359,47 @@ class TaskViewModel: ObservableObject {
         receivedTasksListener?.remove()
         receivedTasksListener = nil
         receivedTasks = []
+    }
+    
+    /// 届いたタスクのうち status が "pending" のもの（受信BOX用）
+    var pendingReceivedTasks: [FirestoreTaskDTO] {
+        receivedTasks.filter { $0.status == "pending" }
+    }
+    
+    /// 届いたタスクを「受け入れる」。Firestore を "active" にし、ローカルのタスク一覧・ギフトBOXに追加する。
+    func acceptReceivedTask(_ dto: FirestoreTaskDTO, giftViewModel: GiftViewModel) async throws {
+        if dto.status != "pending" { return }
+        try await TaskRepository.shared.acceptReceivedTask(taskId: dto.id, rewardId: dto.rewardId)
+        let giftName = dto.giftName ?? "ギフト"
+        // タスク一覧に追加（実行中として表示）
+        let newTask = Task(
+            id: dto.id,
+            title: dto.title,
+            status: .inProgress,
+            rewardDisplayName: giftName,
+            senderId: dto.senderId,
+            rewardId: dto.rewardId
+        )
+        if !tasks.contains(where: { $0.id == newTask.id }) {
+            tasks.append(newTask)
+            saveData()
+        }
+        // ギフトBOXに追加（ロック状態、タスク完了で解禁）
+        let condition = UnlockCondition(conditionType: .singleTask, targetIds: [dto.id])
+        let newGift = Gift(
+            id: dto.rewardId,
+            title: giftName,
+            status: .locked,
+            type: .friendAssigned,
+            unlockCondition: condition,
+            taskId: dto.id,
+            assignedFromUserId: dto.senderId,
+            price: 0,
+            currency: "JPY"
+        )
+        if !giftViewModel.gifts.contains(where: { $0.id == newGift.id }) {
+            giftViewModel.addGift(newGift)
+        }
     }
     
     /// 届いたタスクを完了報告する（Firestore の status を completed にし、紐づくギフトをアンロック）

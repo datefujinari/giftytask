@@ -8,8 +8,9 @@ struct FirestoreTaskDTO: Codable, Identifiable {
     var title: String
     var senderId: String
     var receiverId: String
-    var status: String // "pending" | "doing" | "done" | "completed"
+    var status: String // "pending" | "active" | "doing" | "done" | "completed"
     var rewardId: String
+    var giftName: String? // ギフト名（送信時に保存、表示用）
     
     enum CodingKeys: String, CodingKey {
         case id
@@ -18,6 +19,7 @@ struct FirestoreTaskDTO: Codable, Identifiable {
         case receiverId = "receiver_id"
         case status
         case rewardId = "reward_id"
+        case giftName = "gift_name"
     }
     
     /// Firestore ドキュメントの data から初期化
@@ -34,6 +36,7 @@ struct FirestoreTaskDTO: Codable, Identifiable {
         self.receiverId = receiverId
         self.status = status
         self.rewardId = rewardId
+        self.giftName = data["gift_name"] as? String
     }
 }
 
@@ -85,7 +88,8 @@ final class TaskRepository: ObservableObject {
             "sender_id": senderId,
             "receiver_id": receiverId,
             "status": "pending",
-            "reward_id": giftId
+            "reward_id": giftId,
+            "gift_name": giftName.trimmingCharacters(in: .whitespacesAndNewlines)
         ]
         
         let giftRef = db.collection(giftsCollection).document(giftId)
@@ -164,6 +168,23 @@ final class TaskRepository: ObservableObject {
         // 2. ギフトの is_unlocked を true に更新
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             giftRef.updateData(["is_unlocked": true]) { error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                } else {
+                    continuation.resume()
+                }
+            }
+        }
+    }
+    
+    /// 届いたタスクを「受け入れる」（受信者が承認）。tasks の status を "active" に更新する。
+    func acceptReceivedTask(taskId: String, rewardId: String) async throws {
+        guard Auth.auth().currentUser != nil else {
+            throw TaskRepositoryError.notAuthenticated
+        }
+        let taskRef = db.collection(tasksCollection).document(taskId)
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            taskRef.updateData(["status": "active"]) { error in
                 if let error = error {
                     continuation.resume(throwing: error)
                 } else {

@@ -127,6 +127,13 @@ struct GiftCardView: View {
                         .foregroundColor(gift.status == .locked ? .white.opacity(0.5) : .secondary)
                 }
                 Spacer()
+                if let fromId = gift.assignedFromUserId, !fromId.isEmpty {
+                    Text("From: \(fromId)")
+                        .font(.system(size: 12))
+                        .foregroundColor(gift.status == .locked ? .white.opacity(0.6) : .secondary)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                }
             }
             footerButtons
         }
