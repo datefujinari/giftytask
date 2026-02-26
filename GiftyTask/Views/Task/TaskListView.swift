@@ -34,6 +34,26 @@ struct TaskListView: View {
                     .padding(.vertical, 12)
                 }
                 
+                // 届いたタスク（Firestore リアルタイム）
+                if !taskViewModel.receivedTasks.isEmpty {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("届いたタスク")
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal)
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 12) {
+                                ForEach(taskViewModel.receivedTasks) { dto in
+                                    ReceivedTaskRowView(dto: dto)
+                                }
+                            }
+                            .padding(.horizontal)
+                        }
+                    }
+                    .padding(.vertical, 8)
+                }
+                
                 // ローディング表示
                 if taskViewModel.isLoading {
                     ProgressView()
@@ -198,6 +218,45 @@ struct FilterButton: View {
                 )
                 .cornerRadius(20)
         }
+    }
+}
+
+// MARK: - 届いたタスク 1件表示（Firestore DTO）
+struct ReceivedTaskRowView: View {
+    let dto: FirestoreTaskDTO
+    
+    private var statusLabel: String {
+        switch dto.status {
+        case "pending": return "未着手"
+        case "doing": return "対応中"
+        case "done": return "完了"
+        default: return dto.status
+        }
+    }
+    
+    private var statusColor: Color {
+        switch dto.status {
+        case "pending": return .orange
+        case "doing": return .blue
+        case "done": return .green
+        default: return .secondary
+        }
+    }
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(dto.title)
+                .font(.subheadline)
+                .fontWeight(.medium)
+                .lineLimit(2)
+            Text(statusLabel)
+                .font(.caption)
+                .foregroundColor(statusColor)
+        }
+        .frame(width: 160, alignment: .leading)
+        .padding(12)
+        .background(Color(.systemGray6))
+        .cornerRadius(12)
     }
 }
 

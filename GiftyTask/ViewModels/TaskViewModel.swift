@@ -1,13 +1,19 @@
 import Foundation
 import Combine
+import FirebaseAuth
+import FirebaseFirestore
 
 // MARK: - Task ViewModel
 @MainActor
 class TaskViewModel: ObservableObject {
     // MARK: - Published Properties
     @Published var tasks: [Task] = []
+    @Published var receivedTasks: [FirestoreTaskDTO] = [] // Firestore 届いたタスク（receiver_id == 自分）
     @Published var isLoading = false
     @Published var errorMessage: String?
+    
+    /// 届いたタスクのリアルタイム購読（解除用）
+    private var receivedTasksListener: ListenerRegistration?
     
     // MARK: - Filter & Search
     @Published var selectedFilter: TaskFilter = .all
@@ -323,12 +329,31 @@ class TaskViewModel: ObservableObject {
     
     // MARK: - Data Loading
     
-    /// タスクを読み込む（UserDefaults 優先、無ければ空）
+    /// タスクを読み込む（UserDefaults 優先、無ければ空）。ログイン中なら届いたタスクのリスナーも開始する。
     func loadTasks() async {
         isLoading = true
         errorMessage = nil
         loadData()
+        startListeningReceivedTasks()
         isLoading = false
+    }
+    
+    /// receiver_id が自分のUIDのタスクをリアルタイム購読開始
+    func startListeningReceivedTasks() {
+        stopListeningReceivedTasks()
+        guard let uid = Auth.auth().currentUser?.uid else { return }
+        receivedTasksListener = TaskRepository.shared.addReceivedTasksListener(receiverId: uid) { [weak self] tasks in
+            _Concurrency.Task { @MainActor in
+                self?.receivedTasks = tasks
+            }
+        }
+    }
+    
+    /// 届いたタスクのリスナーを解除
+    func stopListeningReceivedTasks() {
+        receivedTasksListener?.remove()
+        receivedTasksListener = nil
+        receivedTasks = []
     }
     
     /// タスクをリロード

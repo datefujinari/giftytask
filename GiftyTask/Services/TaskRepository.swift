@@ -3,7 +3,7 @@ import FirebaseAuth
 import FirebaseFirestore
 
 // MARK: - Firestore タスク DTO（tasks コレクション）
-struct FirestoreTaskDTO: Codable {
+struct FirestoreTaskDTO: Codable, Identifiable {
     let id: String
     var title: String
     var senderId: String
@@ -18,6 +18,22 @@ struct FirestoreTaskDTO: Codable {
         case receiverId = "receiver_id"
         case status
         case rewardId = "reward_id"
+    }
+    
+    /// Firestore ドキュメントの data から初期化
+    init?(data: [String: Any]) {
+        guard let id = data["id"] as? String,
+              let title = data["title"] as? String,
+              let senderId = data["sender_id"] as? String,
+              let receiverId = data["receiver_id"] as? String,
+              let status = data["status"] as? String,
+              let rewardId = data["reward_id"] as? String else { return nil }
+        self.id = id
+        self.title = title
+        self.senderId = senderId
+        self.receiverId = receiverId
+        self.status = status
+        self.rewardId = rewardId
     }
 }
 
@@ -95,6 +111,35 @@ final class TaskRepository: ObservableObject {
         }
         
         return (taskId, giftId)
+    }
+    
+    /// receiver_id が指定UIDと一致するタスクをリアルタイム購読する
+    /// - Parameters:
+    ///   - receiverId: 自分のUID
+    ///   - onUpdate: スナップショット更新時にメインスレッドで呼ばれる（届いたタスクの配列）
+    /// - Returns: 解除用の ListenerRegistration（不要になったら remove() を呼ぶ）
+    func addReceivedTasksListener(
+        receiverId: String,
+        onUpdate: @escaping ([FirestoreTaskDTO]) -> Void
+    ) -> ListenerRegistration {
+        let query = db.collection(tasksCollection)
+            .whereField("receiver_id", isEqualTo: receiverId)
+        
+        return query.addSnapshotListener { [weak self] snapshot, error in
+            if let error = error {
+                print("TaskRepository addReceivedTasksListener error: \(error.localizedDescription)")
+                DispatchQueue.main.async { onUpdate([]) }
+                return
+            }
+            guard let documents = snapshot?.documents else {
+                DispatchQueue.main.async { onUpdate([]) }
+                return
+            }
+            let tasks = documents.compactMap { doc -> FirestoreTaskDTO? in
+                FirestoreTaskDTO(data: doc.data())
+            }
+            DispatchQueue.main.async { onUpdate(tasks) }
+        }
     }
 }
 
