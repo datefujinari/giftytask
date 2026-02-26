@@ -356,6 +356,12 @@ class TaskViewModel: ObservableObject {
         receivedTasks = []
     }
     
+    /// 届いたタスクを完了報告する（Firestore の status を completed にし、紐づくギフトをアンロック）
+    func completeReceivedTask(_ dto: FirestoreTaskDTO) async throws {
+        if dto.status == "completed" { return }
+        try await TaskRepository.shared.completeReceivedTask(taskId: dto.id, rewardId: dto.rewardId)
+    }
+    
     /// タスクをリロード
     func refreshTasks() async {
         await loadTasks()

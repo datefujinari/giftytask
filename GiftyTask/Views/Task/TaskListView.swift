@@ -45,7 +45,15 @@ struct TaskListView: View {
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 12) {
                                 ForEach(taskViewModel.receivedTasks) { dto in
-                                    ReceivedTaskRowView(dto: dto)
+                                    ReceivedTaskRowView(dto: dto) {
+                                        _Concurrency.Task { @MainActor in
+                                            do {
+                                                try await taskViewModel.completeReceivedTask(dto)
+                                            } catch {
+                                                taskViewModel.errorMessage = error.localizedDescription
+                                            }
+                                        }
+                                    }
                                 }
                             }
                             .padding(.horizontal)
@@ -224,12 +232,15 @@ struct FilterButton: View {
 // MARK: - 届いたタスク 1件表示（Firestore DTO）
 struct ReceivedTaskRowView: View {
     let dto: FirestoreTaskDTO
+    var onComplete: (() -> Void)? = nil
+    
+    private var isCompleted: Bool { dto.status == "completed" }
     
     private var statusLabel: String {
         switch dto.status {
         case "pending": return "未着手"
         case "doing": return "対応中"
-        case "done": return "完了"
+        case "done", "completed": return "完了"
         default: return dto.status
         }
     }
@@ -238,13 +249,13 @@ struct ReceivedTaskRowView: View {
         switch dto.status {
         case "pending": return .orange
         case "doing": return .blue
-        case "done": return .green
+        case "done", "completed": return .green
         default: return .secondary
         }
     }
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 8) {
             Text(dto.title)
                 .font(.subheadline)
                 .fontWeight(.medium)
@@ -252,8 +263,16 @@ struct ReceivedTaskRowView: View {
             Text(statusLabel)
                 .font(.caption)
                 .foregroundColor(statusColor)
+            if !isCompleted {
+                Button(action: { onComplete?() }) {
+                    Label("完了（完了報告）", systemImage: "checkmark.circle.fill")
+                        .font(.caption)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.green)
+            }
         }
-        .frame(width: 160, alignment: .leading)
+        .frame(width: 180, alignment: .leading)
         .padding(12)
         .background(Color(.systemGray6))
         .cornerRadius(12)

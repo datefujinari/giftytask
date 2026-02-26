@@ -8,7 +8,7 @@ struct FirestoreTaskDTO: Codable, Identifiable {
     var title: String
     var senderId: String
     var receiverId: String
-    var status: String // "pending" | "doing" | "done"
+    var status: String // "pending" | "doing" | "done" | "completed"
     var rewardId: String
     
     enum CodingKeys: String, CodingKey {
@@ -139,6 +139,37 @@ final class TaskRepository: ObservableObject {
                 FirestoreTaskDTO(data: doc.data())
             }
             DispatchQueue.main.async { onUpdate(tasks) }
+        }
+    }
+    
+    /// 届いたタスクを完了にする（受信者が完了報告）。tasks の status を "completed" にし、紐づく gifts の is_unlocked を true にする。
+    func completeReceivedTask(taskId: String, rewardId: String) async throws {
+        guard Auth.auth().currentUser != nil else {
+            throw TaskRepositoryError.notAuthenticated
+        }
+        let taskRef = db.collection(tasksCollection).document(taskId)
+        let giftRef = db.collection(giftsCollection).document(rewardId)
+        
+        // 1. タスクの status を "completed" に更新
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            taskRef.updateData(["status": "completed"]) { error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                } else {
+                    continuation.resume()
+                }
+            }
+        }
+        
+        // 2. ギフトの is_unlocked を true に更新
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            giftRef.updateData(["is_unlocked": true]) { error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                } else {
+                    continuation.resume()
+                }
+            }
         }
     }
 }
