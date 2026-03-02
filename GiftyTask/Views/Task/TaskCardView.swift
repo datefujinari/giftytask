@@ -22,6 +22,7 @@ struct TaskCardView: View {
             headerView
             descriptionView
             metadataView
+            progressView
             completeButton
         }
         .padding(20)
@@ -111,6 +112,16 @@ struct TaskCardView: View {
                 .foregroundColor(.secondary)
                 .lineLimit(1)
                 .truncationMode(.middle)
+        }
+    }
+    
+    // MARK: - 進捗（目標日数制のときのみ）
+    @ViewBuilder
+    private var progressView: some View {
+        if task.isTargetDaysTask {
+            Text("進捗: \(task.currentCount)/\(task.targetDays)")
+                .font(.system(size: 12))
+                .foregroundColor(.secondary)
         }
     }
     

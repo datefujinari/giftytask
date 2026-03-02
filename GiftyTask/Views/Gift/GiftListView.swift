@@ -82,8 +82,8 @@ struct GiftListView: View {
                     giftViewModel.loadGifts()
                 }
                 
-                // FAB: ギフト新規追加（タスク画面と統一デザイン）
-                AddTaskFAB {
+                // FAB: ギフト新規追加（オレンジ系でタスクの＋と区別）
+                AddTaskFAB(tint: .orange) {
                     HapticManager.shared.mediumImpact()
                     showAddGift = true
                 }

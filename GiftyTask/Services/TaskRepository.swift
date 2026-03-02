@@ -11,6 +11,9 @@ struct FirestoreTaskDTO: Codable, Identifiable {
     var status: String // "pending" | "active" | "doing" | "done" | "completed"
     var rewardId: String
     var giftName: String? // ギフト名（送信時に保存、表示用）
+    var targetDays: Int // 目標日数（デフォルト1）
+    var currentCount: Int // 累計完了日数
+    var lastCompletedDate: Date? // 最後に完了した日（復活判定用）
     
     enum CodingKeys: String, CodingKey {
         case id
@@ -20,6 +23,9 @@ struct FirestoreTaskDTO: Codable, Identifiable {
         case status
         case rewardId = "reward_id"
         case giftName = "gift_name"
+        case targetDays = "target_days"
+        case currentCount = "current_count"
+        case lastCompletedDate = "last_completed_date"
     }
     
     /// Firestore ドキュメントの data から初期化
@@ -37,6 +43,20 @@ struct FirestoreTaskDTO: Codable, Identifiable {
         self.status = status
         self.rewardId = rewardId
         self.giftName = data["gift_name"] as? String
+        self.targetDays = (data["target_days"] as? Int) ?? 1
+        self.currentCount = (data["current_count"] as? Int) ?? 0
+        if let ts = data["last_completed_date"] as? Timestamp {
+            self.lastCompletedDate = ts.dateValue()
+        } else {
+            self.lastCompletedDate = nil
+        }
+    }
+    
+    /// 復活対象か（status==completed かつ 未達 かつ 最終完了が今日でない）
+    func needsRevival(calendar: Calendar = .current) -> Bool {
+        guard status == "completed", currentCount < targetDays,
+              let last = lastCompletedDate else { return false }
+        return !calendar.isDateInToday(last)
     }
 }
 
@@ -57,8 +77,9 @@ final class TaskRepository: ObservableObject {
     ///   - title: タスク名
     ///   - giftName: ギフト名
     ///   - receiverId: 送信先ユーザーUID
+    ///   - targetDays: 目標日数（1〜30、未指定は1で単発）
     /// - Returns: 作成されたタスクIDとギフトID
-    func sendTask(title: String, giftName: String, receiverId: String) async throws -> (taskId: String, giftId: String) {
+    func sendTask(title: String, giftName: String, receiverId: String, targetDays: Int = 1) async throws -> (taskId: String, giftId: String) {
         guard let senderId = Auth.auth().currentUser?.uid else {
             throw TaskRepositoryError.notAuthenticated
         }
@@ -71,6 +92,7 @@ final class TaskRepository: ObservableObject {
         guard !receiverId.isEmpty else {
             throw TaskRepositoryError.emptyReceiverId
         }
+        let days = min(30, max(1, targetDays))
         
         let taskId = UUID().uuidString
         let giftId = UUID().uuidString
@@ -89,7 +111,9 @@ final class TaskRepository: ObservableObject {
             "receiver_id": receiverId,
             "status": "pending",
             "reward_id": giftId,
-            "gift_name": giftName.trimmingCharacters(in: .whitespacesAndNewlines)
+            "gift_name": giftName.trimmingCharacters(in: .whitespacesAndNewlines),
+            "target_days": days,
+            "current_count": 0
         ]
         
         let giftRef = db.collection(giftsCollection).document(giftId)
@@ -146,7 +170,7 @@ final class TaskRepository: ObservableObject {
         }
     }
     
-    /// 届いたタスクを完了にする（受信者が完了報告）。tasks の status を "completed" にし、紐づく gifts の is_unlocked を true にする。
+    /// 届いたタスクを完了にする（累計: current_count+1、last_completed_date 更新。target_days に達した時のみギフトアンロック）
     func completeReceivedTask(taskId: String, rewardId: String) async throws {
         guard Auth.auth().currentUser != nil else {
             throw TaskRepositoryError.notAuthenticated
@@ -154,9 +178,31 @@ final class TaskRepository: ObservableObject {
         let taskRef = db.collection(tasksCollection).document(taskId)
         let giftRef = db.collection(giftsCollection).document(rewardId)
         
-        // 1. タスクの status を "completed" に更新
+        let doc: DocumentSnapshot = try await withCheckedThrowingContinuation { continuation in
+            taskRef.getDocument { snapshot, error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                } else if let snapshot = snapshot {
+                    continuation.resume(returning: snapshot)
+                } else {
+                    continuation.resume(throwing: NSError(domain: "TaskRepository", code: -1, userInfo: [NSLocalizedDescriptionKey: "No snapshot"]))
+                }
+            }
+        }
+        guard let data = doc.data(),
+              let current = data["current_count"] as? Int,
+              let target = data["target_days"] as? Int else {
+            return
+        }
+        let newCount = current + 1
+        let now = Timestamp(date: Date())
+        var update: [String: Any] = [
+            "current_count": newCount,
+            "last_completed_date": now,
+            "status": "completed"
+        ]
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            taskRef.updateData(["status": "completed"]) { error in
+            taskRef.updateData(update) { error in
                 if let error = error {
                     continuation.resume(throwing: error)
                 } else {
@@ -164,10 +210,41 @@ final class TaskRepository: ObservableObject {
                 }
             }
         }
-        
-        // 2. ギフトの is_unlocked を true に更新
+        if newCount >= target {
+            try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+                giftRef.updateData(["is_unlocked": true]) { error in
+                    if let error = error {
+                        continuation.resume(throwing: error)
+                    } else {
+                        continuation.resume()
+                    }
+                }
+            }
+        }
+    }
+    
+    /// 復活対象タスクの status を "active" に戻す（last_completed_date が今日でない場合）
+    func reviveTask(taskId: String) async throws {
+        guard Auth.auth().currentUser != nil else { return }
+        let taskRef = db.collection(tasksCollection).document(taskId)
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            giftRef.updateData(["is_unlocked": true]) { error in
+            taskRef.updateData(["status": "active"]) { error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                } else {
+                    continuation.resume()
+                }
+            }
+        }
+    }
+    
+    /// タスクドキュメントを Firestore から削除
+    func deleteTask(taskId: String) async throws {
+        guard Auth.auth().currentUser != nil else {
+            throw TaskRepositoryError.notAuthenticated
+        }
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            db.collection(tasksCollection).document(taskId).delete { error in
                 if let error = error {
                     continuation.resume(throwing: error)
                 } else {

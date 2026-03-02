@@ -46,56 +46,55 @@ struct TaskListView: View {
                         message: taskViewModel.selectedFilter == .completed ? "完了したタスクはまだありません" : "新しいタスクを作成しましょう"
                     )
                 } else {
-                    ScrollView {
-                        LazyVStack(spacing: 16) {
-                            ForEach(taskViewModel.filteredTasks) { task in
-                                TaskCardView(
-                                    task: Binding(
-                                        get: {
-                                            // 常に最新のタスクを取得
-                                            taskViewModel.tasks.first(where: { $0.id == task.id }) ?? task
-                                        },
-                                        set: { updatedTask in
-                                            taskViewModel.updateTask(updatedTask)
-                                        }
-                                    ),
-                                    onComplete: { completedTask, photo in
-                                        guard completedTask.status != .completed else { return }
-                                        
-                                        _Concurrency.Task { @MainActor in
-                                            do {
-                                                let photoURL = photo != nil ? "photo_\(completedTask.id)" : nil
-                                                let result = try await taskViewModel.completeTask(completedTask, photoURL: photoURL)
-                                                
-                                                activityViewModel.recordTaskCompletion(
-                                                    xpGained: result.xpGained,
-                                                    totalTasksCount: taskViewModel.todayTasks.count
-                                                )
-                                                
-                                                let leveledUp = activityViewModel.addXPToUser(result.xpGained)
-                                                if leveledUp {
-                                                    HapticManager.shared.levelUp()
-                                                }
-                                                
-                                                activityViewModel.generateHeatmapData()
-                                                
-                                                giftViewModel.checkAndUnlockGifts(
-                                                    completedTask: result.completedTask,
-                                                    taskViewModel: taskViewModel,
-                                                    activityViewModel: activityViewModel
-                                                )
-                                            } catch {
-                                                print("❌ エラー: \(error.localizedDescription)")
-                                                taskViewModel.errorMessage = error.localizedDescription
-                                            }
+                    List {
+                        ForEach(taskViewModel.filteredTasks) { task in
+                            TaskCardView(
+                                task: Binding(
+                                    get: {
+                                        taskViewModel.tasks.first(where: { $0.id == task.id }) ?? task
+                                    },
+                                    set: { updatedTask in
+                                        taskViewModel.updateTask(updatedTask)
+                                    }
+                                ),
+                                onComplete: { completedTask, photo in
+                                    guard completedTask.status != .completed else { return }
+                                    _Concurrency.Task { @MainActor in
+                                        do {
+                                            let photoURL = photo != nil ? "photo_\(completedTask.id)" : nil
+                                            let result = try await taskViewModel.completeTask(completedTask, photoURL: photoURL)
+                                            activityViewModel.recordTaskCompletion(
+                                                xpGained: result.xpGained,
+                                                totalTasksCount: taskViewModel.todayTasks.count
+                                            )
+                                            let leveledUp = activityViewModel.addXPToUser(result.xpGained)
+                                            if leveledUp { HapticManager.shared.levelUp() }
+                                            activityViewModel.generateHeatmapData()
+                                            giftViewModel.checkAndUnlockGifts(
+                                                completedTask: result.completedTask,
+                                                taskViewModel: taskViewModel,
+                                                activityViewModel: activityViewModel
+                                            )
+                                        } catch {
+                                            taskViewModel.errorMessage = error.localizedDescription
                                         }
                                     }
-                                )
-                                .padding(.horizontal)
+                                }
+                            )
+                            .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                            .listRowSeparator(.hidden)
+                            .listRowBackground(Color.clear)
+                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                Button(role: .destructive) {
+                                    taskViewModel.deleteTask(task)
+                                } label: {
+                                    Label("削除", systemImage: "trash")
+                                }
                             }
                         }
-                        .padding(.vertical)
                     }
+                    .listStyle(.plain)
+                    .scrollContentBackground(.hidden)
                 }
                 }
                 .navigationTitle("タスク")

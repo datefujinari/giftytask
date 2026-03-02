@@ -8,6 +8,7 @@ struct SendTaskView: View {
     @State private var taskTitle = ""
     @State private var giftName = ""
     @State private var receiverId = ""
+    @State private var targetDays: Int = 1
     @State private var isSending = false
     @State private var errorMessage: String?
     @State private var showSuccess = false
@@ -19,6 +20,12 @@ struct SendTaskView: View {
                     TextField("タスク名", text: $taskTitle)
                         .textContentType(.none)
                         .autocapitalization(.sentences)
+                    Picker("目標日数", selection: $targetDays) {
+                        ForEach(1...30, id: \.self) { n in
+                            Text("\(n)日").tag(n)
+                        }
+                    }
+                    .pickerStyle(.menu)
                 }
                 Section("ギフト") {
                     TextField("ギフト名", text: $giftName)
@@ -93,7 +100,8 @@ struct SendTaskView: View {
             _ = try await taskRepo.sendTask(
                 title: taskTitle,
                 giftName: giftName,
-                receiverId: receiverId.trimmingCharacters(in: .whitespacesAndNewlines)
+                receiverId: receiverId.trimmingCharacters(in: .whitespacesAndNewlines),
+                targetDays: targetDays
             )
             isSending = false
             showSuccess = true

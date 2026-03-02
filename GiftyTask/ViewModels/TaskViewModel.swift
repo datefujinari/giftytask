@@ -139,7 +139,47 @@ class TaskViewModel: ObservableObject {
               let decoded = UserDefaultsStorage.decode([Task].self, from: data) else {
             return
         }
-        tasks = decoded
+        tasks = applyRevivalToLocalTasks(decoded)
+        saveData()
+    }
+    
+    /// 累計タスクの復活（status==completed かつ currentCount<targetDays かつ 最終完了が今日でない → active）
+    private func applyRevivalToLocalTasks(_ list: [Task]) -> [Task] {
+        let calendar = Calendar.current
+        return list.map { task in
+            var t = task
+            if t.status == .completed, t.currentCount < t.targetDays,
+               let last = t.lastCompletedDate, !calendar.isDateInToday(last) {
+                t.status = .inProgress
+            }
+            return t
+        }
+    }
+    
+    /// 届いたタスクの最新状態をローカルタスク一覧に反映
+    private func mergeReceivedTasksIntoLocal(_ received: [FirestoreTaskDTO]) {
+        for i in tasks.indices where tasks[i].senderId != nil {
+            guard let dto = received.first(where: { $0.id == tasks[i].id }) else { continue }
+            tasks[i].currentCount = dto.currentCount
+            tasks[i].lastCompletedDate = dto.lastCompletedDate
+            switch dto.status {
+            case "active", "doing": tasks[i].status = .inProgress
+            case "completed": tasks[i].status = .completed
+            default: break
+            }
+        }
+        saveData()
+    }
+    
+    /// タスクを削除（ローカルから削除。Firestore タスクの場合は Firestore からも削除）
+    func deleteTask(_ task: Task) {
+        tasks.removeAll { $0.id == task.id }
+        saveData()
+        if task.rewardId != nil {
+            _Concurrency.Task {
+                try? await TaskRepository.shared.deleteTask(taskId: task.id)
+            }
+        }
     }
     
     /// ローカルデータを初期状態にリセット
@@ -188,13 +228,6 @@ class TaskViewModel: ObservableObject {
         updatedTask.updatedAt = Date()
         tasks[index] = updatedTask
         saveData()
-    }
-    
-    /// タスクを削除
-    func deleteTask(_ task: Task) {
-        tasks.removeAll { $0.id == task.id }
-        saveData()
-        // await firebaseService.deleteTask(task.id)
     }
     
     /// タスクをアーカイブ
@@ -350,6 +383,10 @@ class TaskViewModel: ObservableObject {
         receivedTasksListener = TaskRepository.shared.addReceivedTasksListener(receiverId: uid) { [weak self] tasks in
             _Concurrency.Task { @MainActor in
                 self?.receivedTasks = tasks
+                self?.mergeReceivedTasksIntoLocal(tasks)
+                for dto in tasks where dto.needsRevival() {
+                    try? await TaskRepository.shared.reviveTask(taskId: dto.id)
+                }
             }
         }
     }
@@ -378,7 +415,10 @@ class TaskViewModel: ObservableObject {
             status: .inProgress,
             rewardDisplayName: giftName,
             senderId: dto.senderId,
-            rewardId: dto.rewardId
+            rewardId: dto.rewardId,
+            targetDays: dto.targetDays,
+            currentCount: dto.currentCount,
+            lastCompletedDate: dto.lastCompletedDate
         )
         if !tasks.contains(where: { $0.id == newTask.id }) {
             tasks.append(newTask)

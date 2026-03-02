@@ -385,6 +385,8 @@ private struct PriorityChip: View {
 // MARK: - Add Task FAB (Floating Action Button)
 struct AddTaskFAB: View {
     var action: () -> Void
+    /// 未指定ならアプリのアクセント色（タスク用）。ギフト用は .orange などを指定。
+    var tint: Color = Color.accentColor
     
     var body: some View {
         Button(action: action) {
@@ -392,10 +394,10 @@ struct AddTaskFAB: View {
                 .font(.system(size: 24, weight: .semibold))
                 .foregroundColor(.white)
                 .frame(width: 56, height: 56)
-                .background(Color.accentColor)
+                .background(tint)
                 .clipShape(Circle())
                 .shadow(color: Color.black.opacity(0.25), radius: 8, x: 0, y: 4)
-                .shadow(color: Color.accentColor.opacity(0.4), radius: 4, x: 0, y: 2)
+                .shadow(color: tint.opacity(0.4), radius: 4, x: 0, y: 2)
         }
         .buttonStyle(.plain)
     }

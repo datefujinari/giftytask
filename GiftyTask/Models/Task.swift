@@ -2,6 +2,63 @@ import Foundation
 
 // MARK: - Task Model
 struct Task: Identifiable, Codable, Hashable {
+    enum CodingKeys: String, CodingKey {
+        case id, title, description, epicId, status, verificationMode, priority
+        case dueDate, completedDate, photoEvidenceURL, createdAt, updatedAt
+        case xpReward, rewardDisplayName, isRoutine, senderId, fromDisplayName, rewardId
+        case targetDays, currentCount, lastCompletedDate
+    }
+    
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(String.self, forKey: .id)
+        title = try c.decode(String.self, forKey: .title)
+        description = try c.decodeIfPresent(String.self, forKey: .description)
+        epicId = try c.decodeIfPresent(String.self, forKey: .epicId)
+        status = try c.decode(TaskStatus.self, forKey: .status)
+        verificationMode = try c.decode(VerificationMode.self, forKey: .verificationMode)
+        priority = try c.decode(TaskPriority.self, forKey: .priority)
+        dueDate = try c.decodeIfPresent(Date.self, forKey: .dueDate)
+        completedDate = try c.decodeIfPresent(Date.self, forKey: .completedDate)
+        photoEvidenceURL = try c.decodeIfPresent(String.self, forKey: .photoEvidenceURL)
+        createdAt = try c.decode(Date.self, forKey: .createdAt)
+        updatedAt = try c.decode(Date.self, forKey: .updatedAt)
+        xpReward = try c.decodeIfPresent(Int.self, forKey: .xpReward) ?? 10
+        rewardDisplayName = try c.decodeIfPresent(String.self, forKey: .rewardDisplayName)
+        isRoutine = try c.decodeIfPresent(Bool.self, forKey: .isRoutine) ?? false
+        senderId = try c.decodeIfPresent(String.self, forKey: .senderId)
+        fromDisplayName = try c.decodeIfPresent(String.self, forKey: .fromDisplayName)
+        rewardId = try c.decodeIfPresent(String.self, forKey: .rewardId)
+        targetDays = try c.decodeIfPresent(Int.self, forKey: .targetDays) ?? 1
+        currentCount = try c.decodeIfPresent(Int.self, forKey: .currentCount) ?? 0
+        lastCompletedDate = try c.decodeIfPresent(Date.self, forKey: .lastCompletedDate)
+    }
+    
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(id, forKey: .id)
+        try c.encode(title, forKey: .title)
+        try c.encodeIfPresent(description, forKey: .description)
+        try c.encodeIfPresent(epicId, forKey: .epicId)
+        try c.encode(status, forKey: .status)
+        try c.encode(verificationMode, forKey: .verificationMode)
+        try c.encode(priority, forKey: .priority)
+        try c.encodeIfPresent(dueDate, forKey: .dueDate)
+        try c.encodeIfPresent(completedDate, forKey: .completedDate)
+        try c.encodeIfPresent(photoEvidenceURL, forKey: .photoEvidenceURL)
+        try c.encode(createdAt, forKey: .createdAt)
+        try c.encode(updatedAt, forKey: .updatedAt)
+        try c.encode(xpReward, forKey: .xpReward)
+        try c.encodeIfPresent(rewardDisplayName, forKey: .rewardDisplayName)
+        try c.encode(isRoutine, forKey: .isRoutine)
+        try c.encodeIfPresent(senderId, forKey: .senderId)
+        try c.encodeIfPresent(fromDisplayName, forKey: .fromDisplayName)
+        try c.encodeIfPresent(rewardId, forKey: .rewardId)
+        try c.encode(targetDays, forKey: .targetDays)
+        try c.encode(currentCount, forKey: .currentCount)
+        try c.encodeIfPresent(lastCompletedDate, forKey: .lastCompletedDate)
+    }
+    
     let id: String
     var title: String
     var description: String?
@@ -20,6 +77,9 @@ struct Task: Identifiable, Codable, Hashable {
     var senderId: String? // 届いたタスクの場合の送り主UID（From表示用）
     var fromDisplayName: String? // 送り主の表示名（任意）
     var rewardId: String? // 届いたタスクの場合の紐づくギフトID（完了時にFirestore更新用）
+    var targetDays: Int // 目標達成に必要な合計日数（累計達成型、デフォルト1で単発）
+    var currentCount: Int // これまでに完了した累計日数
+    var lastCompletedDate: Date? // 最後に完了した日付（復活判定用）
     
     // 初期化
     init(
@@ -40,7 +100,10 @@ struct Task: Identifiable, Codable, Hashable {
         isRoutine: Bool = false,
         senderId: String? = nil,
         fromDisplayName: String? = nil,
-        rewardId: String? = nil
+        rewardId: String? = nil,
+        targetDays: Int = 1,
+        currentCount: Int = 0,
+        lastCompletedDate: Date? = nil
     ) {
         self.id = id
         self.title = title
@@ -60,14 +123,31 @@ struct Task: Identifiable, Codable, Hashable {
         self.senderId = senderId
         self.fromDisplayName = fromDisplayName
         self.rewardId = rewardId
+        self.targetDays = targetDays
+        self.currentCount = currentCount
+        self.lastCompletedDate = lastCompletedDate
     }
     
-    // 完了処理
+    /// 目標日数制かどうか（1より大きい場合）
+    var isTargetDaysTask: Bool { targetDays > 1 }
+    
+    /// 残り日数（目標まであと何日）
+    var remainingDays: Int { max(0, targetDays - currentCount) }
+    
+    // 完了処理（currentCount +1、lastCompletedDate 更新。targetDays に達した時のみ status = .completed）
     mutating func complete(with photoURL: String? = nil) {
-        self.status = .completed
-        self.completedDate = Date()
-        self.photoEvidenceURL = photoURL
-        self.updatedAt = Date()
+        let now = Date()
+        currentCount += 1
+        lastCompletedDate = now
+        completedDate = now
+        photoEvidenceURL = photoURL
+        updatedAt = now
+        if currentCount >= targetDays {
+            status = .completed
+        } else {
+            // 累計途中：一旦 completed にし、復活ロジックで翌日以降 active に戻す
+            status = .completed
+        }
     }
 }
 
