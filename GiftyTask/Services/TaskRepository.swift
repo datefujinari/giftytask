@@ -129,7 +129,7 @@ final class TaskRepository: ObservableObject {
         let query = db.collection(tasksCollection)
             .whereField("receiver_id", isEqualTo: receiverId)
         
-        return query.addSnapshotListener { [weak self] snapshot, error in
+        return query.addSnapshotListener { snapshot, error in
             if let error = error {
                 print("TaskRepository addReceivedTasksListener error: \(error.localizedDescription)")
                 DispatchQueue.main.async { onUpdate([]) }
