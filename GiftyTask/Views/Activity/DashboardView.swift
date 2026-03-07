@@ -7,6 +7,7 @@ struct DashboardView: View {
     @EnvironmentObject var giftViewModel: GiftViewModel
     @EnvironmentObject var epicViewModel: EpicViewModel
     @State private var showAddTask = false
+    @State private var editingTask: Task?
     @State private var heatmapTheme = HeatmapTheme()
     @State private var showResetConfirm = false
     
@@ -34,6 +35,18 @@ struct DashboardView: View {
                 AddTaskView(isPresented: $showAddTask)
                     .environmentObject(taskViewModel)
                     .environmentObject(activityViewModel)
+            }
+            .sheet(item: $editingTask) { task in
+                AddTaskView(
+                    isPresented: .constant(true),
+                    editingTask: task,
+                    onDismiss: { editingTask = nil }
+                )
+                .environmentObject(taskViewModel)
+                .environmentObject(activityViewModel)
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
+                .onDisappear { editingTask = nil }
             }
             .sheet(item: Binding(
                 get: { giftViewModel.lastUnlockedGift },
@@ -119,9 +132,10 @@ struct DashboardView: View {
     }
     
     private func dashboardTaskCard(for index: Int) -> some View {
-        TaskCardView(
+        let task = taskViewModel.todayTasks[index]
+        return TaskCardView(
             task: Binding(
-                get: { taskViewModel.todayTasks[index] },
+                get: { taskViewModel.todayTasks.indices.contains(index) ? taskViewModel.todayTasks[index] : task },
                 set: { taskViewModel.updateTask($0) }
             ),
             onComplete: { completedTask, photo in
@@ -145,7 +159,8 @@ struct DashboardView: View {
                         print("❌ エラー: \(error.localizedDescription)")
                     }
                 }
-            }
+            },
+            onEdit: task.senderId == nil ? { editingTask = task } : nil
         )
         .frame(width: 320)
     }

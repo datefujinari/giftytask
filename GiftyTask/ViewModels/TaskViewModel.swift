@@ -97,11 +97,16 @@ class TaskViewModel: ObservableObject {
         }
     }
     
+    /// 今日やるタスク（期限が今日のもの ＋ 毎日ルーチンは常に含める）
     var todayTasks: [Task] {
-        let today = Calendar.current.startOfDay(for: Date())
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
         return tasks.filter { task in
+            if task.isRoutine {
+                return task.status != .archived
+            }
             guard let dueDate = task.dueDate else { return false }
-            return Calendar.current.isDate(dueDate, inSameDayAs: today)
+            return calendar.isDate(dueDate, inSameDayAs: today)
         }
     }
     
@@ -143,14 +148,24 @@ class TaskViewModel: ObservableObject {
         saveData()
     }
     
-    /// 累計タスクの復活（status==completed かつ currentCount<targetDays かつ 最終完了が今日でない → active）
+    /// 復活ロジック: (1) 累計タスク 未達かつ最終完了が今日でない → active (2) 毎日タスク 昨日までに完了 → 今日また未完了に
     private func applyRevivalToLocalTasks(_ list: [Task]) -> [Task] {
         let calendar = Calendar.current
         return list.map { task in
             var t = task
-            if t.status == .completed, t.currentCount < t.targetDays,
+            guard t.status == .completed else { return t }
+            // 累計達成型: currentCount < targetDays かつ 最終完了が今日でない → 復活
+            if t.currentCount < t.targetDays,
                let last = t.lastCompletedDate, !calendar.isDateInToday(last) {
                 t.status = .inProgress
+                return t
+            }
+            // 毎日ルーチン: 完了日が今日でない → 今日またやるので未完了に戻す
+            if t.isRoutine {
+                let completedDay = t.completedDate ?? t.lastCompletedDate
+                if completedDay == nil || !calendar.isDateInToday(completedDay!) {
+                    t.status = .inProgress
+                }
             }
             return t
         }
@@ -418,7 +433,10 @@ class TaskViewModel: ObservableObject {
             rewardId: dto.rewardId,
             targetDays: dto.targetDays,
             currentCount: dto.currentCount,
-            lastCompletedDate: dto.lastCompletedDate
+            lastCompletedDate: dto.lastCompletedDate,
+            senderName: dto.senderName,
+            senderEmoji: dto.senderEmoji,
+            senderTotalCompletedCount: dto.senderTotalCompletedCount
         )
         if !tasks.contains(where: { $0.id == newTask.id }) {
             tasks.append(newTask)

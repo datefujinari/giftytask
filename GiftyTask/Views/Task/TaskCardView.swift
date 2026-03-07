@@ -11,10 +11,12 @@ struct TaskCardView: View {
     @State private var isProcessing = false  // TaskCardViewModelから移動
     
     let onComplete: (Task, UIImage?) -> Void
+    var onEdit: (() -> Void)? = nil
     
-    init(task: Binding<Task>, onComplete: @escaping (Task, UIImage?) -> Void) {
+    init(task: Binding<Task>, onComplete: @escaping (Task, UIImage?) -> Void, onEdit: (() -> Void)? = nil) {
         _task = task
         self.onComplete = onComplete
+        self.onEdit = onEdit
     }
     
     var body: some View {
@@ -41,15 +43,24 @@ struct TaskCardView: View {
     // MARK: - Header View
     private var headerView: some View {
         HStack {
-            Text(task.title)  // viewModel.taskからtaskに変更
+            Text(task.title)
                 .font(.system(size: 18, weight: .bold))
                 .foregroundColor(.primary)
                 .lineLimit(2)
             
             Spacer()
             
+            if onEdit != nil {
+                Button { onEdit?() } label: {
+                    Image(systemName: "pencil.circle.fill")
+                        .font(.system(size: 22))
+                        .foregroundColor(.secondary)
+                }
+                .buttonStyle(.plain)
+            }
+            
             Circle()
-                .fill(priorityColor(task.priority))  // viewModel.taskからtaskに変更
+                .fill(priorityColor(task.priority))
                 .frame(width: 12, height: 12)
         }
     }
@@ -105,13 +116,26 @@ struct TaskCardView: View {
     // MARK: - From Label（送り主表示）
     @ViewBuilder
     private var fromLabel: some View {
-        let fromText = task.fromDisplayName ?? task.senderId
-        if let id = fromText, !id.isEmpty {
-            Text("From: \(id)")
-                .font(.system(size: 12))
-                .foregroundColor(.secondary)
-                .lineLimit(1)
-                .truncationMode(.middle)
+        let name = task.senderName ?? task.fromDisplayName ?? "匿名ユーザー"
+        let emoji = task.senderEmoji ?? "👤"
+        if task.senderId != nil || task.fromDisplayName != nil || task.senderName != nil {
+            HStack(spacing: 4) {
+                Text(emoji)
+                    .font(.system(size: 14))
+                Text(name)
+                    .font(.system(size: 12))
+                    .foregroundColor(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                if task.senderTotalCompletedCount > 0 {
+                    Text("•")
+                        .font(.system(size: 10))
+                        .foregroundColor(.secondary)
+                    Text("\(task.senderTotalCompletedCount)達成")
+                        .font(.system(size: 11))
+                        .foregroundColor(.accentColor)
+                }
+            }
         }
     }
     

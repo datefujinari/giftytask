@@ -94,8 +94,37 @@ struct ReceivedBoxCardView: View {
     var isAccepting: Bool = false
     var onAccept: () -> Void
     
+    private var senderDisplayName: String {
+        dto.senderName ?? "匿名ユーザー"
+    }
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
+            // 送り主を大きく表示
+            HStack(alignment: .center, spacing: 12) {
+                Text(dto.senderEmoji ?? "👤")
+                    .font(.system(size: 40))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(senderDisplayName)
+                        .font(.headline)
+                        .foregroundColor(.primary)
+                    Text("From: \(dto.senderId)")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                }
+                Spacer()
+                // 累計達成数（ステータス）
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text("\(dto.senderTotalCompletedCount)")
+                        .font(.system(size: 20, weight: .bold))
+                        .foregroundColor(.accentColor)
+                    Text("達成")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                }
+            }
             Text(dto.title)
                 .font(.headline)
                 .foregroundColor(.primary)
@@ -109,11 +138,6 @@ struct ReceivedBoxCardView: View {
                         .foregroundColor(.secondary)
                 }
             }
-            Text("From: \(dto.senderId)")
-                .font(.caption)
-                .foregroundColor(.secondary)
-                .lineLimit(1)
-                .truncationMode(.middle)
             Button(action: onAccept) {
                 HStack {
                     if isAccepting {

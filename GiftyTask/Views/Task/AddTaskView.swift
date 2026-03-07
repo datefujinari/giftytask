@@ -40,22 +40,29 @@ private extension VerificationMode {
     }
 }
 
-// MARK: - Add Task View (ハーフモーダル・タスク新規追加)
+// MARK: - Add Task View (ハーフモーダル・タスク新規追加 / 編集)
 struct AddTaskView: View {
     @EnvironmentObject var taskViewModel: TaskViewModel
     @Environment(\.dismiss) private var dismiss
     @Binding var isPresented: Bool
+    var editingTask: Task? = nil
+    var onDismiss: (() -> Void)? = nil
     
     @State private var taskTitle: String = ""
-    @State private var taskDetail: String = ""       // 詳細（30文字程度）
+    @State private var taskDetail: String = ""
     @State private var selectedDueOption: DueDateQuickOption = .today
     @State private var selectedPriority: TaskPriority = .medium
-    @State private var giftContent: String = ""     // 達成時に解禁したい報酬名
+    @State private var giftContent: String = ""
     @State private var selectedVerificationMode: VerificationMode = .selfDeclaration
     @FocusState private var focusedField: Field?
     
     private let calendar = Calendar.current
     private let detailMaxLength = 30
+    
+    /// 編集時かつ「毎日」のときは「いつやる？」を他に変更不可
+    private var isDueOptionLockedToDaily: Bool {
+        editingTask?.isRoutine == true
+    }
     
     enum Field { case title, detail, gift }
     
@@ -95,13 +102,14 @@ struct AddTaskView: View {
                     endPoint: .bottomTrailing
                 )
             )
-            .navigationTitle("新規タスク")
+            .navigationTitle(editingTask != nil ? "タスクを編集" : "新規タスク")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("キャンセル") {
                         HapticManager.shared.selectionChanged()
                         isPresented = false
+                        onDismiss?()
                         dismiss()
                     }
                     .foregroundColor(.secondary)
@@ -110,7 +118,30 @@ struct AddTaskView: View {
         }
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
-        .onAppear { focusedField = .title }
+        .onAppear {
+            if let t = editingTask {
+                taskTitle = t.title
+                taskDetail = t.description ?? ""
+                selectedDueOption = dueDateQuickOption(from: t)
+                selectedPriority = t.priority
+                giftContent = t.rewardDisplayName ?? ""
+                selectedVerificationMode = t.verificationMode
+            }
+            focusedField = .title
+        }
+    }
+    
+    private func dueDateQuickOption(from task: Task) -> DueDateQuickOption {
+        if task.isRoutine { return .daily }
+        guard let d = task.dueDate else { return .none }
+        let today = calendar.startOfDay(for: Date())
+        let taskDay = calendar.startOfDay(for: d)
+        if calendar.isDate(taskDay, inSameDayAs: today) { return .today }
+        if let tomorrow = calendar.date(byAdding: .day, value: 1, to: today),
+           calendar.isDate(taskDay, inSameDayAs: tomorrow) { return .tomorrow }
+        if let weekEnd = DueDateQuickOption.thisWeek.dueDate(calendar: calendar),
+           taskDay <= weekEnd, taskDay >= today { return .thisWeek }
+        return .none
     }
     
     // MARK: - 1. タスク名
@@ -154,7 +185,7 @@ struct AddTaskView: View {
         }
     }
     
-    // MARK: - 3. いつやる？（今日/明日/今週/毎日/なし）
+    // MARK: - 3. いつやる？（今日/明日/今週/毎日/なし）※編集時「毎日」の場合は他に変更不可
     private var dueDateSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("いつやる？")
@@ -163,10 +194,13 @@ struct AddTaskView: View {
             
             FlowLayout(spacing: 10) {
                 ForEach(DueDateQuickOption.allCases, id: \.self) { option in
+                    let isDisabled = isDueOptionLockedToDaily && option != .daily
                     QuickOptionButton(
                         title: option.rawValue,
-                        isSelected: selectedDueOption == option
+                        isSelected: selectedDueOption == option,
+                        isDisabled: isDisabled
                     ) {
+                        if isDueOptionLockedToDaily && option != .daily { return }
                         HapticManager.shared.selectionChanged()
                         selectedDueOption = option
                     }
@@ -267,17 +301,30 @@ struct AddTaskView: View {
         let description = taskDetail.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : String(taskDetail.prefix(detailMaxLength)).trimmingCharacters(in: .whitespacesAndNewlines)
         let rewardName = giftContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : giftContent.trimmingCharacters(in: .whitespacesAndNewlines)
         
-        _ = taskViewModel.createTask(
-            title: title,
-            description: description,
-            epicId: nil,
-            verificationMode: selectedVerificationMode,
-            priority: selectedPriority,
-            dueDate: dueDate,
-            xpReward: 10,
-            rewardDisplayName: rewardName,
-            isRoutine: selectedDueOption.isRoutine
-        )
+        if let existing = editingTask {
+            var updated = existing
+            updated.title = title
+            updated.description = description
+            updated.priority = selectedPriority
+            updated.dueDate = dueDate
+            updated.verificationMode = selectedVerificationMode
+            updated.rewardDisplayName = rewardName
+            updated.isRoutine = selectedDueOption.isRoutine
+            updated.updatedAt = Date()
+            taskViewModel.updateTask(updated)
+        } else {
+            _ = taskViewModel.createTask(
+                title: title,
+                description: description,
+                epicId: nil,
+                verificationMode: selectedVerificationMode,
+                priority: selectedPriority,
+                dueDate: dueDate,
+                xpReward: 10,
+                rewardDisplayName: rewardName,
+                isRoutine: selectedDueOption.isRoutine
+            )
+        }
         
         HapticManager.shared.mediumImpact()
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
@@ -285,6 +332,7 @@ struct AddTaskView: View {
         }
         
         isPresented = false
+        onDismiss?()
         dismiss()
     }
 }
@@ -333,21 +381,34 @@ private struct FlowLayout: Layout {
 private struct QuickOptionButton: View {
     let title: String
     let isSelected: Bool
+    var isDisabled: Bool = false
     let action: () -> Void
     
     var body: some View {
         Button(action: action) {
             Text(title)
                 .font(.system(size: 14, weight: .medium))
-                .foregroundColor(isSelected ? .white : .primary)
+                .foregroundColor(foregroundColor)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 10)
                 .background(
                     RoundedRectangle(cornerRadius: 12)
-                        .fill(isSelected ? Color.accentColor : Color(.systemGray6))
+                        .fill(backgroundColor)
                 )
         }
         .buttonStyle(.plain)
+        .disabled(isDisabled)
+        .opacity(isDisabled ? 0.6 : 1)
+    }
+    
+    private var foregroundColor: Color {
+        if isDisabled { return .secondary }
+        return isSelected ? .white : .primary
+    }
+    
+    private var backgroundColor: Color {
+        if isDisabled { return Color(.systemGray5) }
+        return isSelected ? Color.accentColor : Color(.systemGray6)
     }
 }
 

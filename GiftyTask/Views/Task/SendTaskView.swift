@@ -4,18 +4,48 @@ import SwiftUI
 struct SendTaskView: View {
     @Environment(\.dismiss) private var dismiss
     @ObservedObject private var taskRepo = TaskRepository.shared
+    @ObservedObject private var authManager = AuthManager.shared
     
     @State private var taskTitle = ""
     @State private var giftName = ""
     @State private var receiverId = ""
     @State private var targetDays: Int = 1
+    @State private var addToFriendList = true
     @State private var isSending = false
     @State private var errorMessage: String?
     @State private var showSuccess = false
     
+    private var friendList: [String] {
+        authManager.userProfile?.friendList ?? []
+    }
+    
     var body: some View {
         NavigationView {
             Form {
+                // フレンドから選ぶ
+                if !friendList.isEmpty {
+                    Section("フレンドから選ぶ") {
+                        ForEach(friendList, id: \.self) { uid in
+                            Button {
+                                receiverId = uid
+                                HapticManager.shared.selectionChanged()
+                            } label: {
+                                HStack {
+                                    Text(uid)
+                                        .font(.system(.body, design: .monospaced))
+                                        .foregroundColor(.primary)
+                                        .lineLimit(1)
+                                        .truncationMode(.middle)
+                                    if receiverId == uid {
+                                        Spacer()
+                                        Image(systemName: "checkmark.circle.fill")
+                                            .foregroundColor(.accentColor)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
                 Section("タスク") {
                     TextField("タスク名", text: $taskTitle)
                         .textContentType(.none)
@@ -37,6 +67,8 @@ struct SendTaskView: View {
                         .textContentType(.username)
                         .autocapitalization(.none)
                         .autocorrectionDisabled()
+                    Toggle("フレンドに追加する", isOn: $addToFriendList)
+                        .disabled(receiverId.trimmingCharacters(in: .whitespaces).isEmpty)
                 }
                 if let error = errorMessage {
                     Section {
@@ -96,13 +128,17 @@ struct SendTaskView: View {
     private func sendTask() async {
         errorMessage = nil
         isSending = true
+        let receiver = receiverId.trimmingCharacters(in: .whitespacesAndNewlines)
         do {
             _ = try await taskRepo.sendTask(
                 title: taskTitle,
                 giftName: giftName,
-                receiverId: receiverId.trimmingCharacters(in: .whitespacesAndNewlines),
+                receiverId: receiver,
                 targetDays: targetDays
             )
+            if addToFriendList, !receiver.isEmpty {
+                try? await authManager.addFriend(receiver)
+            }
             isSending = false
             showSuccess = true
         } catch {

@@ -8,12 +8,15 @@ struct FirestoreTaskDTO: Codable, Identifiable {
     var title: String
     var senderId: String
     var receiverId: String
-    var status: String // "pending" | "active" | "doing" | "done" | "completed"
+    var status: String
     var rewardId: String
-    var giftName: String? // ギフト名（送信時に保存、表示用）
-    var targetDays: Int // 目標日数（デフォルト1）
-    var currentCount: Int // 累計完了日数
-    var lastCompletedDate: Date? // 最後に完了した日（復活判定用）
+    var giftName: String?
+    var targetDays: Int
+    var currentCount: Int
+    var lastCompletedDate: Date?
+    var senderName: String?
+    var senderEmoji: String?
+    var senderTotalCompletedCount: Int
     
     enum CodingKeys: String, CodingKey {
         case id
@@ -26,9 +29,11 @@ struct FirestoreTaskDTO: Codable, Identifiable {
         case targetDays = "target_days"
         case currentCount = "current_count"
         case lastCompletedDate = "last_completed_date"
+        case senderName = "sender_name"
+        case senderEmoji = "sender_emoji"
+        case senderTotalCompletedCount = "sender_total_completed_count"
     }
     
-    /// Firestore ドキュメントの data から初期化
     init?(data: [String: Any]) {
         guard let id = data["id"] as? String,
               let title = data["title"] as? String,
@@ -50,6 +55,9 @@ struct FirestoreTaskDTO: Codable, Identifiable {
         } else {
             self.lastCompletedDate = nil
         }
+        self.senderName = data["sender_name"] as? String
+        self.senderEmoji = data["sender_emoji"] as? String
+        self.senderTotalCompletedCount = (data["sender_total_completed_count"] as? Int) ?? 0
     }
     
     /// 復活対象か（status==completed かつ 未達 かつ 最終完了が今日でない）
@@ -104,7 +112,11 @@ final class TaskRepository: ObservableObject {
             "associated_task_id": taskId
         ]
         
-        let taskData: [String: Any] = [
+        let profile = AuthManager.shared.userProfile
+        let senderName = profile?.displayName ?? "ユーザー"
+        let senderEmoji = profile?.avatarEmoji ?? "👤"
+        let senderTotal = profile?.totalCompletedCount ?? 0
+        var taskData: [String: Any] = [
             "id": taskId,
             "title": title.trimmingCharacters(in: .whitespacesAndNewlines),
             "sender_id": senderId,
@@ -113,7 +125,10 @@ final class TaskRepository: ObservableObject {
             "reward_id": giftId,
             "gift_name": giftName.trimmingCharacters(in: .whitespacesAndNewlines),
             "target_days": days,
-            "current_count": 0
+            "current_count": 0,
+            "sender_name": senderName,
+            "sender_emoji": senderEmoji,
+            "sender_total_completed_count": senderTotal
         ]
         
         let giftRef = db.collection(giftsCollection).document(giftId)

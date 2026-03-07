@@ -108,28 +108,31 @@ struct StreakData: Codable, Hashable {
     
     // ストリークを更新
     mutating func updateStreak(with date: Date) {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: date)
+        
         guard let lastDate = lastActivityDate else {
-            // 初回
             currentStreak = 1
             longestStreak = 1
-            lastActivityDate = date
+            lastActivityDate = today
             return
         }
         
-        let calendar = Calendar.current
-        if calendar.isDate(date, inSameDayAs: lastDate) {
-            // 同じ日: ストリーク変更なし
-            return
-        } else if calendar.isDate(date, equalTo: lastDate, toGranularity: .day),
-                  calendar.dateComponents([.day], from: lastDate, to: date).day == 1 {
-            // 連続日
+        let lastDay = calendar.startOfDay(for: lastDate)
+        if calendar.isDate(today, inSameDayAs: lastDay) {
+            return // 同じ日: 変更なし
+        }
+        
+        let dayDiff = calendar.dateComponents([.day], from: lastDay, to: today).day ?? 0
+        if dayDiff == 1 {
+            // 連続日（昨日の翌日 = 今日）
             currentStreak += 1
             longestStreak = max(longestStreak, currentStreak)
-            lastActivityDate = date
+            lastActivityDate = today
         } else {
-            // ストリークが途切れた
+            // 1日以上空いた: 途切れて今日から1日
             currentStreak = 1
-            lastActivityDate = date
+            lastActivityDate = today
         }
     }
 }

@@ -7,6 +7,7 @@ struct TaskListView: View {
     @EnvironmentObject var giftViewModel: GiftViewModel
     @EnvironmentObject var epicViewModel: EpicViewModel
     @State private var showAddTask = false
+    @State private var editingTask: Task?
     
     var body: some View {
         NavigationView {
@@ -79,7 +80,8 @@ struct TaskListView: View {
                                             taskViewModel.errorMessage = error.localizedDescription
                                         }
                                     }
-                                }
+                                },
+                                onEdit: task.senderId == nil ? { editingTask = task } : nil
                             )
                             .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
                             .listRowSeparator(.hidden)
@@ -95,6 +97,7 @@ struct TaskListView: View {
                     }
                     .listStyle(.plain)
                     .scrollContentBackground(.hidden)
+                    .scrollDismissesKeyboard(.immediately)
                 }
                 }
                 .navigationTitle("タスク")
@@ -108,11 +111,6 @@ struct TaskListView: View {
                 .task {
                     await taskViewModel.loadTasks()
                 }
-                .simultaneousGesture(
-                    TapGesture().onEnded { _ in
-                        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-                    }
-                )
                 
                 // FAB: タスク新規追加
                 AddTaskFAB {
@@ -126,6 +124,18 @@ struct TaskListView: View {
                 AddTaskView(isPresented: $showAddTask)
                     .environmentObject(taskViewModel)
                     .environmentObject(activityViewModel)
+            }
+            .sheet(item: $editingTask) { task in
+                AddTaskView(
+                    isPresented: .constant(true),
+                    editingTask: task,
+                    onDismiss: { editingTask = nil }
+                )
+                .environmentObject(taskViewModel)
+                .environmentObject(activityViewModel)
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
+                .onDisappear { editingTask = nil }
             }
             .sheet(item: Binding(
                 get: { giftViewModel.lastUnlockedGift },

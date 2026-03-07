@@ -65,18 +65,33 @@ final class AuthManager: ObservableObject {
     // MARK: - ユーザープロフィール（Firestore）
     
     /// ユーザープロフィールを作成または更新
-    func createOrUpdateUserProfile(uid: String, displayName: String, friendList: [String] = []) async throws {
-        let profile = UserProfile(uid: uid, displayName: displayName, friendList: friendList)
-        
-        let data: [String: Any] = [
+    func createOrUpdateUserProfile(
+        uid: String,
+        displayName: String,
+        avatarEmoji: String = "👤",
+        friendList: [String] = [],
+        totalCompletedCount: Int? = nil
+    ) async throws {
+        let current = userProfile
+        let count = totalCompletedCount ?? current?.totalCompletedCount ?? 0
+        let profile = UserProfile(
+            uid: uid,
+            displayName: displayName,
+            avatarEmoji: avatarEmoji,
+            friendList: friendList,
+            totalCompletedCount: count
+        )
+        var data: [String: Any] = [
             "uid": profile.uid,
             "display_name": profile.displayName,
-            "friend_list": profile.friendList
+            "avatar_emoji": profile.avatarEmoji,
+            "friend_list": profile.friendList,
+            "total_completed_count": profile.totalCompletedCount
         ]
-        
         let ref = db.collection(usersCollection).document(uid)
         try await setDataAsync(ref: ref, data: data)
         userProfile = profile
+        objectWillChange.send()
     }
     
     /// Firestore からユーザープロフィールを取得
@@ -86,8 +101,16 @@ final class AuthManager: ObservableObject {
             let doc = try await getDocumentAsync(ref: ref)
             if doc.exists, let data = doc.data() {
                 let displayName = data["display_name"] as? String ?? "ユーザー"
+                let avatarEmoji = data["avatar_emoji"] as? String ?? "👤"
                 let friendList = data["friend_list"] as? [String] ?? []
-                userProfile = UserProfile(uid: uid, displayName: displayName, friendList: friendList)
+                let totalCompletedCount = data["total_completed_count"] as? Int ?? 0
+                userProfile = UserProfile(
+                    uid: uid,
+                    displayName: displayName,
+                    avatarEmoji: avatarEmoji,
+                    friendList: friendList,
+                    totalCompletedCount: totalCompletedCount
+                )
             } else {
                 try await createOrUpdateUserProfile(uid: uid, displayName: "ユーザー")
             }
@@ -96,14 +119,50 @@ final class AuthManager: ObservableObject {
         }
     }
     
-    /// プロフィールを更新（表示名など）
-    func updateDisplayName(_ displayName: String) async throws {
+    /// プロフィールを更新（表示名・絵文字）
+    func updateProfile(displayName: String, avatarEmoji: String) async throws {
         guard let uid = currentUser?.uid else { return }
         try await createOrUpdateUserProfile(
             uid: uid,
             displayName: displayName,
-            friendList: userProfile?.friendList ?? []
+            avatarEmoji: avatarEmoji,
+            friendList: userProfile?.friendList ?? [],
+            totalCompletedCount: userProfile?.totalCompletedCount ?? 0
         )
+    }
+    
+    /// フレンドを追加（重複チェック）
+    func addFriend(_ uid: String) async throws {
+        guard let me = currentUser?.uid, uid != me else { return }
+        var list = userProfile?.friendList ?? []
+        if !list.contains(uid) {
+            list.append(uid)
+            try await createOrUpdateUserProfile(
+                uid: me,
+                displayName: userProfile?.displayName ?? "ユーザー",
+                avatarEmoji: userProfile?.avatarEmoji ?? "👤",
+                friendList: list,
+                totalCompletedCount: userProfile?.totalCompletedCount ?? 0
+            )
+        }
+    }
+    
+    /// 累計達成数を +1
+    func incrementTotalCompletedCount() async {
+        guard let uid = currentUser?.uid else { return }
+        let current = (userProfile?.totalCompletedCount ?? 0) + 1
+        do {
+            let ref = db.collection(usersCollection).document(uid)
+            try await setDataAsync(ref: ref, data: [
+                "total_completed_count": current
+            ])
+            var p = userProfile ?? UserProfile(uid: uid, displayName: "ユーザー")
+            p.totalCompletedCount = current
+            userProfile = p
+            objectWillChange.send()
+        } catch {
+            print("incrementTotalCompletedCount error: \(error)")
+        }
     }
     
     // MARK: - Firestore 非同期ヘルパー（continuation を分離して型推論・Decoder 誤解を防止）

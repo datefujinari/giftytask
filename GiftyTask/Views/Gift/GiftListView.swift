@@ -55,19 +55,27 @@ struct GiftListView: View {
                             message: selectedFilter == .locked ? "アンロック済みギフトはまだありません" : "新しいギフトを獲得しましょう"
                         )
                     } else {
-                        ScrollView {
-                            LazyVStack(spacing: 20) {
-                                ForEach(filteredGifts) { gift in
-                                    GiftCardView(
-                                        gift: gift,
-                                        onEdit: { editingGift = gift },
-                                        onUse: { giftViewModel.useGift($0) }
-                                    )
-                                    .padding(.horizontal)
+                        List {
+                            ForEach(filteredGifts) { gift in
+                                GiftCardView(
+                                    gift: gift,
+                                    onEdit: { editingGift = gift },
+                                    onUse: { giftViewModel.useGift($0) }
+                                )
+                                .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
+                                .listRowSeparator(.hidden)
+                                .listRowBackground(Color.clear)
+                                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                    Button(role: .destructive) {
+                                        giftViewModel.deleteGift(gift)
+                                    } label: {
+                                        Label("削除", systemImage: "trash")
+                                    }
                                 }
                             }
-                            .padding(.vertical)
                         }
+                        .listStyle(.plain)
+                        .scrollContentBackground(.hidden)
                     }
                 }
                 .navigationTitle("ギフトBOX")

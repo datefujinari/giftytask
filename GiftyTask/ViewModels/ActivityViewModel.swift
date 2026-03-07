@@ -199,6 +199,10 @@ class ActivityViewModel: ObservableObject {
         // ストリークを更新
         updateStreak()
         saveData()
+        // Firestore の累計達成数を +1
+        _Concurrency.Task {
+            await AuthManager.shared.incrementTotalCompletedCount()
+        }
     }
     
     // MARK: - Heatmap Generation

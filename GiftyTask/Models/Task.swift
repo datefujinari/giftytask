@@ -7,6 +7,7 @@ struct Task: Identifiable, Codable, Hashable {
         case dueDate, completedDate, photoEvidenceURL, createdAt, updatedAt
         case xpReward, rewardDisplayName, isRoutine, senderId, fromDisplayName, rewardId
         case targetDays, currentCount, lastCompletedDate
+        case senderName, senderEmoji, senderTotalCompletedCount
     }
     
     init(from decoder: Decoder) throws {
@@ -32,6 +33,9 @@ struct Task: Identifiable, Codable, Hashable {
         targetDays = try c.decodeIfPresent(Int.self, forKey: .targetDays) ?? 1
         currentCount = try c.decodeIfPresent(Int.self, forKey: .currentCount) ?? 0
         lastCompletedDate = try c.decodeIfPresent(Date.self, forKey: .lastCompletedDate)
+        senderName = try c.decodeIfPresent(String.self, forKey: .senderName)
+        senderEmoji = try c.decodeIfPresent(String.self, forKey: .senderEmoji)
+        senderTotalCompletedCount = try c.decodeIfPresent(Int.self, forKey: .senderTotalCompletedCount) ?? 0
     }
     
     func encode(to encoder: Encoder) throws {
@@ -57,6 +61,9 @@ struct Task: Identifiable, Codable, Hashable {
         try c.encode(targetDays, forKey: .targetDays)
         try c.encode(currentCount, forKey: .currentCount)
         try c.encodeIfPresent(lastCompletedDate, forKey: .lastCompletedDate)
+        try c.encodeIfPresent(senderName, forKey: .senderName)
+        try c.encodeIfPresent(senderEmoji, forKey: .senderEmoji)
+        try c.encode(senderTotalCompletedCount, forKey: .senderTotalCompletedCount)
     }
     
     let id: String
@@ -74,8 +81,11 @@ struct Task: Identifiable, Codable, Hashable {
     var xpReward: Int // 完了時のXP報酬
     var rewardDisplayName: String? // 達成時に解禁したい報酬名（Giftの内容）
     var isRoutine: Bool // 毎日ルーチンタスクかどうか
-    var senderId: String? // 届いたタスクの場合の送り主UID（From表示用）
-    var fromDisplayName: String? // 送り主の表示名（任意）
+    var senderId: String? // 届いたタスクの場合の送り主UID
+    var fromDisplayName: String? // 送り主の表示名（後方互換）
+    var senderName: String? // 送り主の表示名（優先）
+    var senderEmoji: String? // 送り主の絵文字アイコン
+    var senderTotalCompletedCount: Int // 送り主の累計達成数（0=非届きタスク）
     var rewardId: String? // 届いたタスクの場合の紐づくギフトID（完了時にFirestore更新用）
     var targetDays: Int // 目標達成に必要な合計日数（累計達成型、デフォルト1で単発）
     var currentCount: Int // これまでに完了した累計日数
@@ -103,7 +113,10 @@ struct Task: Identifiable, Codable, Hashable {
         rewardId: String? = nil,
         targetDays: Int = 1,
         currentCount: Int = 0,
-        lastCompletedDate: Date? = nil
+        lastCompletedDate: Date? = nil,
+        senderName: String? = nil,
+        senderEmoji: String? = nil,
+        senderTotalCompletedCount: Int = 0
     ) {
         self.id = id
         self.title = title
@@ -126,6 +139,9 @@ struct Task: Identifiable, Codable, Hashable {
         self.targetDays = targetDays
         self.currentCount = currentCount
         self.lastCompletedDate = lastCompletedDate
+        self.senderName = senderName
+        self.senderEmoji = senderEmoji
+        self.senderTotalCompletedCount = senderTotalCompletedCount
     }
     
     /// 目標日数制かどうか（1より大きい場合）
