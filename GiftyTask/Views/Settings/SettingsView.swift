@@ -1,14 +1,10 @@
 import SwiftUI
 
-// MARK: - 使用可能な絵文字一覧
-private let avatarEmojiOptions = ["👤", "😊", "🔥", "⭐️", "🎯", "💪", "✨", "🌟", "🎉", "❤️", "🌈", "🚀"]
-
 // MARK: - 設定画面（プロフィール編集・UID表示・コピー・累計達成数）
 struct SettingsView: View {
     @ObservedObject private var authManager = AuthManager.shared
     @State private var showCopiedFeedback = false
     @State private var editingDisplayName = ""
-    @State private var editingAvatarEmoji = "👤"
     @State private var isSavingProfile = false
     @State private var profileSaveMessage: String?
     
@@ -21,33 +17,9 @@ struct SettingsView: View {
             Form {
                 // プロフィール編集
                 Section {
-                    HStack(spacing: 16) {
-                        Text(editingAvatarEmoji)
-                            .font(.system(size: 48))
-                        VStack(alignment: .leading, spacing: 8) {
-                            TextField("ニックネーム", text: $editingDisplayName)
-                                .textContentType(.nickname)
-                                .autocapitalization(.words)
-                            Text("絵文字をタップして変更")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                    LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 6), spacing: 8) {
-                        ForEach(avatarEmojiOptions, id: \.self) { emoji in
-                            Button {
-                                editingAvatarEmoji = emoji
-                                HapticManager.shared.lightImpact()
-                            } label: {
-                                Text(emoji)
-                                    .font(.system(size: 28))
-                                    .frame(width: 44, height: 44)
-                                    .background(editingAvatarEmoji == emoji ? Color.accentColor.opacity(0.2) : Color.clear)
-                                    .cornerRadius(8)
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
+                    TextField("ニックネーム", text: $editingDisplayName)
+                        .textContentType(.nickname)
+                        .autocapitalization(.words)
                     if isSavingProfile {
                         HStack {
                             Spacer()
@@ -126,16 +98,10 @@ struct SettingsView: View {
             .navigationTitle("設定")
             .onAppear {
                 editingDisplayName = authManager.userProfile?.displayName ?? "ユーザー"
-                editingAvatarEmoji = authManager.userProfile?.avatarEmoji ?? "👤"
             }
             .onChange(of: authManager.userProfile?.displayName) { _, newValue in
                 if let v = newValue, editingDisplayName != v {
                     editingDisplayName = v
-                }
-            }
-            .onChange(of: authManager.userProfile?.avatarEmoji) { _, newValue in
-                if let v = newValue, editingAvatarEmoji != v {
-                    editingAvatarEmoji = v
                 }
             }
             .onChange(of: showCopiedFeedback) { _, newValue in
@@ -162,7 +128,7 @@ struct SettingsView: View {
         do {
             try await authManager.updateProfile(
                 displayName: editingDisplayName.trimmingCharacters(in: .whitespacesAndNewlines),
-                avatarEmoji: editingAvatarEmoji
+                avatarEmoji: authManager.userProfile?.avatarEmoji ?? "👤"
             )
             profileSaveMessage = "保存しました"
             HapticManager.shared.mediumImpact()
