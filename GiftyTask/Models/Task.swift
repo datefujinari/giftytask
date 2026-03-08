@@ -8,6 +8,7 @@ struct Task: Identifiable, Codable, Hashable {
         case xpReward, rewardDisplayName, isRoutine, senderId, fromDisplayName, rewardId
         case targetDays, currentCount, lastCompletedDate
         case senderName, senderEmoji, senderTotalCompletedCount
+        case completionImageURL
     }
     
     init(from decoder: Decoder) throws {
@@ -36,6 +37,7 @@ struct Task: Identifiable, Codable, Hashable {
         senderName = try c.decodeIfPresent(String.self, forKey: .senderName)
         senderEmoji = try c.decodeIfPresent(String.self, forKey: .senderEmoji)
         senderTotalCompletedCount = try c.decodeIfPresent(Int.self, forKey: .senderTotalCompletedCount) ?? 0
+        completionImageURL = try c.decodeIfPresent(String.self, forKey: .completionImageURL)
     }
     
     func encode(to encoder: Encoder) throws {
@@ -64,6 +66,7 @@ struct Task: Identifiable, Codable, Hashable {
         try c.encodeIfPresent(senderName, forKey: .senderName)
         try c.encodeIfPresent(senderEmoji, forKey: .senderEmoji)
         try c.encode(senderTotalCompletedCount, forKey: .senderTotalCompletedCount)
+        try c.encodeIfPresent(completionImageURL, forKey: .completionImageURL)
     }
     
     let id: String
@@ -86,6 +89,7 @@ struct Task: Identifiable, Codable, Hashable {
     var senderName: String? // 送り主の表示名（優先）
     var senderEmoji: String? // 送り主の絵文字アイコン
     var senderTotalCompletedCount: Int // 送り主の累計達成数（0=非届きタスク）
+    var completionImageURL: String? // 完了報告画像（Firebase Storage URL）
     var rewardId: String? // 届いたタスクの場合の紐づくギフトID（完了時にFirestore更新用）
     var targetDays: Int // 目標達成に必要な合計日数（累計達成型、デフォルト1で単発）
     var currentCount: Int // これまでに完了した累計日数
@@ -116,7 +120,8 @@ struct Task: Identifiable, Codable, Hashable {
         lastCompletedDate: Date? = nil,
         senderName: String? = nil,
         senderEmoji: String? = nil,
-        senderTotalCompletedCount: Int = 0
+        senderTotalCompletedCount: Int = 0,
+        completionImageURL: String? = nil
     ) {
         self.id = id
         self.title = title
@@ -142,6 +147,7 @@ struct Task: Identifiable, Codable, Hashable {
         self.senderName = senderName
         self.senderEmoji = senderEmoji
         self.senderTotalCompletedCount = senderTotalCompletedCount
+        self.completionImageURL = completionImageURL
     }
     
     /// 目標日数制かどうか（1より大きい場合）
@@ -173,6 +179,8 @@ enum TaskStatus: String, Codable {
     case inProgress = "in_progress"
     case completed = "completed"
     case archived = "archived"
+    /// 受信者が完了報告済み・送信者の承認待ち
+    case pendingApproval = "pending_approval"
 }
 
 // MARK: - Verification Mode

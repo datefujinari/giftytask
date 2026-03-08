@@ -56,8 +56,11 @@ struct ContentView: View {
                 .tag(4)
         }
         .accentColor(.blue)
+        .onAppear {
+            taskViewModel.giftViewModel = giftViewModel
+            taskViewModel.activityViewModel = activityViewModel
+        }
         .task {
-            // 実機テスト用: 未ログインなら匿名ログインを実行
             guard authManager.currentUser == nil, !authManager.isLoading else { return }
             do {
                 try await authManager.signInAnonymously()

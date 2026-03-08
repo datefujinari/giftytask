@@ -14,6 +14,19 @@ class TaskViewModel: ObservableObject {
     
     /// 届いたタスクのリアルタイム購読（解除用）
     private var receivedTasksListener: ListenerRegistration?
+    /// 送ったタスクのリアルタイム購読（承認待ち一覧用）
+    private var sentTasksListener: ListenerRegistration?
+    
+    /// 送ったタスク（Firestore）。承認待ち一覧に利用
+    @Published var sentTasks: [FirestoreTaskDTO] = []
+    
+    /// 承認待ちのタスク（送信者用）
+    var pendingApprovalTasks: [FirestoreTaskDTO] {
+        sentTasks.filter { $0.status == "pending_approval" }
+    }
+    
+    weak var giftViewModel: GiftViewModel?
+    weak var activityViewModel: ActivityViewModel?
     
     // MARK: - Filter & Search
     @Published var selectedFilter: TaskFilter = .all
@@ -177,9 +190,18 @@ class TaskViewModel: ObservableObject {
             guard let dto = received.first(where: { $0.id == tasks[i].id }) else { continue }
             tasks[i].currentCount = dto.currentCount
             tasks[i].lastCompletedDate = dto.lastCompletedDate
+            tasks[i].completionImageURL = dto.completionImageURL
+            let previousStatus = tasks[i].status
             switch dto.status {
             case "active", "doing": tasks[i].status = .inProgress
-            case "completed": tasks[i].status = .completed
+            case "pending_approval": tasks[i].status = .pendingApproval
+            case "completed":
+                tasks[i].status = .completed
+                if previousStatus != .completed, let gv = giftViewModel, let av = activityViewModel {
+                    var t = tasks[i]
+                    t.completedDate = Date()
+                    gv.checkAndUnlockGifts(completedTask: t, taskViewModel: self, activityViewModel: av)
+                }
             default: break
             }
         }
@@ -281,9 +303,10 @@ class TaskViewModel: ObservableObject {
     /// タスクを完了する
     /// - Parameters:
     ///   - task: 完了するタスク
-    ///   - photoURL: 写真証拠のURL（オプション）
-    /// - Returns: 完了したタスクと獲得したXP
-    func completeTask(_ task: Task, photoURL: String? = nil) async throws -> (completedTask: Task, xpGained: Int) {
+    ///   - photoURL: 写真証拠のURL（オプション）。届いたタスクで画像付きの場合は先に Storage にアップロードしたURLを渡す
+    ///   - completionImageURL: 届いたタスクの完了報告画像URL（Storage アップロード済み）。photoURL の代わりにこちらを使う
+    /// - Returns: 更新されたタスクと獲得したXP（届いたタスクで報告のみの場合は承認待ちとなりギフトはまだアンロックされない）
+    func completeTask(_ task: Task, photoURL: String? = nil, completionImageURL: String? = nil) async throws -> (completedTask: Task, xpGained: Int) {
         guard let index = tasks.firstIndex(where: { $0.id == task.id }) else {
             throw TaskError.taskNotFound
         }
@@ -292,43 +315,58 @@ class TaskViewModel: ObservableObject {
             throw TaskError.taskAlreadyCompleted
         }
         
+        if task.status == .pendingApproval {
+            throw TaskError.alreadyReported
+        }
+        
         // 検証モードチェック
-        if task.verificationMode == .photoEvidence && photoURL == nil {
+        let evidenceURL = completionImageURL ?? photoURL
+        if task.verificationMode == .photoEvidence && evidenceURL == nil {
             throw TaskError.photoEvidenceRequired
         }
         
         isLoading = true
         errorMessage = nil
         
-        var completedTask = task
-        completedTask.complete(with: photoURL)
-        completedTask.updatedAt = Date()
+        var updatedTask = task
+        let isReceivedTask = task.senderId != nil
         
-        tasks[index] = completedTask
-        saveData()
-        
-        // 届いたタスク（Firestore連携）の場合は status を completed にし、ギフトをアンロック
-        if completedTask.senderId != nil, let rewardId = completedTask.rewardId {
-            try? await TaskRepository.shared.completeReceivedTask(taskId: completedTask.id, rewardId: rewardId)
+        if isReceivedTask, let rewardId = task.rewardId {
+            // 届いたタスク: 完了報告（承認待ち）。Firestore は pending_approval、ギフトはアンロックしない
+            try await TaskRepository.shared.reportTaskCompletion(
+                taskId: task.id,
+                rewardId: rewardId,
+                completionImageURL: evidenceURL
+            )
+            updatedTask.currentCount = task.currentCount + 1
+            updatedTask.lastCompletedDate = Date()
+            updatedTask.completionImageURL = evidenceURL
+            updatedTask.status = .pendingApproval
+            updatedTask.updatedAt = Date()
+            if updatedTask.currentCount >= updatedTask.targetDays {
+                updatedTask.completedDate = Date()
+            }
+            // 送信者へ通知
+            if let senderProfile = await AuthManager.shared.fetchOtherUserProfile(uid: task.senderId ?? "") {
+                NotificationService.notifyTaskCompletionReported(
+                    senderFCMToken: senderProfile.fcmToken,
+                    receiverDisplayName: AuthManager.shared.userProfile?.displayName ?? "受信者"
+                )
+            }
+        } else {
+            // 自分で作ったタスク: 即時完了
+            updatedTask.complete(with: evidenceURL)
+            updatedTask.updatedAt = Date()
         }
         
-        let xpGained = completedTask.xpReward
+        tasks[index] = updatedTask
+        saveData()
         
-        // ハプティックフィードバック
+        let xpGained = updatedTask.xpReward
         HapticManager.shared.taskCompleted()
         
-        // TODO: FirebaseServiceに保存
-        // await firebaseService.updateTask(completedTask)
-        
-        // TODO: エピック進捗の更新を通知
-        // NotificationCenter.default.post(
-        //     name: .taskCompleted,
-        //     object: nil,
-        //     userInfo: ["task": completedTask, "epicId": completedTask.epicId as Any]
-        // )
-        
         isLoading = false
-        return (completedTask, xpGained)
+        return (updatedTask, xpGained)
     }
     
     /// タスクを完了する（同期版、簡易使用用）
@@ -382,12 +420,13 @@ class TaskViewModel: ObservableObject {
     
     // MARK: - Data Loading
     
-    /// タスクを読み込む（UserDefaults 優先、無ければ空）。ログイン中なら届いたタスクのリスナーも開始する。
+    /// タスクを読み込む（UserDefaults 優先、無ければ空）。ログイン中なら届いた・送ったタスクのリスナーを開始する。
     func loadTasks() async {
         isLoading = true
         errorMessage = nil
         loadData()
         startListeningReceivedTasks()
+        startListeningSentTasks()
         isLoading = false
     }
     
@@ -406,11 +445,30 @@ class TaskViewModel: ObservableObject {
         }
     }
     
+    /// sender_id が自分のUIDのタスクをリアルタイム購読開始（承認待ち一覧用）
+    func startListeningSentTasks() {
+        sentTasksListener?.remove()
+        sentTasksListener = nil
+        guard let uid = Auth.auth().currentUser?.uid else { return }
+        sentTasksListener = TaskRepository.shared.addSentTasksListener(senderId: uid) { [weak self] tasks in
+            _Concurrency.Task { @MainActor in
+                self?.sentTasks = tasks
+            }
+        }
+    }
+    
     /// 届いたタスクのリスナーを解除
     func stopListeningReceivedTasks() {
         receivedTasksListener?.remove()
         receivedTasksListener = nil
         receivedTasks = []
+    }
+    
+    /// 送ったタスクのリスナーを解除
+    func stopListeningSentTasks() {
+        sentTasksListener?.remove()
+        sentTasksListener = nil
+        sentTasks = []
     }
     
     /// 届いたタスクのうち status が "pending" のもの（受信BOX用）
@@ -460,12 +518,31 @@ class TaskViewModel: ObservableObject {
         if !giftViewModel.gifts.contains(where: { $0.id == newGift.id }) {
             giftViewModel.addGift(newGift)
         }
+        if let senderProfile = await AuthManager.shared.fetchOtherUserProfile(uid: dto.senderId) {
+            NotificationService.notifyTaskAccepted(
+                senderFCMToken: senderProfile.fcmToken,
+                receiverDisplayName: AuthManager.shared.userProfile?.displayName ?? "受信者",
+                accepted: true
+            )
+        }
     }
     
-    /// 届いたタスクを完了報告する（Firestore の status を completed にし、紐づくギフトをアンロック）
+    /// 届いたタスクを完了報告する（画像なし・承認待ちにする）
     func completeReceivedTask(_ dto: FirestoreTaskDTO) async throws {
         if dto.status == "completed" { return }
         try await TaskRepository.shared.completeReceivedTask(taskId: dto.id, rewardId: dto.rewardId)
+    }
+    
+    /// 送信者が完了報告を承認。ギフトをアンロックし、タスクを完了にする。
+    func approveTaskCompletion(_ dto: FirestoreTaskDTO) async throws {
+        guard dto.status == "pending_approval" else { return }
+        try await TaskRepository.shared.approveTaskCompletion(taskId: dto.id, rewardId: dto.rewardId)
+    }
+    
+    /// 送信者が完了報告を差し戻し。タスクを active に戻す。
+    func rejectTaskCompletion(_ dto: FirestoreTaskDTO) async throws {
+        guard dto.status == "pending_approval" else { return }
+        try await TaskRepository.shared.rejectTaskCompletion(taskId: dto.id)
     }
     
     /// タスクをリロード
@@ -478,6 +555,7 @@ class TaskViewModel: ObservableObject {
 enum TaskError: LocalizedError {
     case taskNotFound
     case taskAlreadyCompleted
+    case alreadyReported
     case photoEvidenceRequired
     case invalidTaskData
     
@@ -487,6 +565,8 @@ enum TaskError: LocalizedError {
             return "タスクが見つかりません"
         case .taskAlreadyCompleted:
             return "このタスクは既に完了しています"
+        case .alreadyReported:
+            return "このタスクは既に完了報告済みです。送信者の承認をお待ちください。"
         case .photoEvidenceRequired:
             return "このタスクには写真証拠が必要です"
         case .invalidTaskData:

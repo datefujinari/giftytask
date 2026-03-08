@@ -153,6 +153,12 @@ struct SendTaskView: View {
             if addToFriendList, !receiver.isEmpty {
                 try? await authManager.addFriend(receiver)
             }
+            if let receiverProfile = await AuthManager.shared.fetchOtherUserProfile(uid: receiver) {
+                NotificationService.notifyTaskReceived(
+                    receiverFCMToken: receiverProfile.fcmToken,
+                    senderDisplayName: authManager.userProfile?.displayName ?? "ユーザー"
+                )
+            }
             isSending = false
             showSuccess = true
         } catch {

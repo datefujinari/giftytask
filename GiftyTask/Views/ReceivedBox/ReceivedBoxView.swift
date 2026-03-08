@@ -5,17 +5,22 @@ struct ReceivedBoxView: View {
     @EnvironmentObject var taskViewModel: TaskViewModel
     @EnvironmentObject var giftViewModel: GiftViewModel
     @State private var showSendTask = false
+    @State private var showApprovalPending = false
     @State private var acceptingTaskId: String?
     
     private var pendingTasks: [FirestoreTaskDTO] {
         taskViewModel.pendingReceivedTasks
     }
     
+    private var pendingApprovalCount: Int {
+        taskViewModel.pendingApprovalTasks.count
+    }
+    
     var body: some View {
         NavigationView {
             ZStack(alignment: .bottomTrailing) {
                 VStack(spacing: 0) {
-                    if pendingTasks.isEmpty {
+                    if pendingTasks.isEmpty && pendingApprovalCount == 0 {
                         EmptyStateView(
                             icon: "tray",
                             title: "届いたタスクはありません",
@@ -24,6 +29,23 @@ struct ReceivedBoxView: View {
                     } else {
                         ScrollView {
                             LazyVStack(spacing: 16) {
+                                if pendingApprovalCount > 0 {
+                                    Button {
+                                        showApprovalPending = true
+                                    } label: {
+                                        HStack {
+                                            Image(systemName: "checkmark.circle.fill")
+                                            Text("承認待ち (\(pendingApprovalCount)件)")
+                                                .fontWeight(.medium)
+                                            Spacer()
+                                            Image(systemName: "chevron.right")
+                                        }
+                                        .padding()
+                                        .background(Color.orange.opacity(0.2))
+                                        .cornerRadius(12)
+                                    }
+                                    .padding(.horizontal)
+                                }
                                 ForEach(pendingTasks) { dto in
                                     ReceivedBoxCardView(
                                         dto: dto,
@@ -48,6 +70,15 @@ struct ReceivedBoxView: View {
                     }
                 }
                 .navigationTitle("受信BOX")
+                .toolbar {
+                    if pendingApprovalCount > 0 {
+                        ToolbarItem(placement: .primaryAction) {
+                            Button("承認待ち \(pendingApprovalCount)") {
+                                showApprovalPending = true
+                            }
+                        }
+                    }
+                }
                 .background(
                     LinearGradient(
                         colors: [Color.blue.opacity(0.1), Color.purple.opacity(0.1)],
@@ -83,6 +114,10 @@ struct ReceivedBoxView: View {
             }
             .sheet(isPresented: $showSendTask) {
                 SendTaskView()
+            }
+            .sheet(isPresented: $showApprovalPending) {
+                ApprovalPendingView()
+                    .environmentObject(taskViewModel)
             }
         }
     }

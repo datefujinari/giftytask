@@ -149,14 +149,14 @@ struct TaskCardView: View {
     // MARK: - Complete Button
     private var completeButton: some View {
         Button(action: {
-            // 自己申告モードの場合のみ、タップで完了
-            if task.verificationMode == .selfDeclaration && task.status != .completed {  // viewModel.taskからtaskに変更
+            if task.status == .pendingApproval { return }
+            if task.verificationMode == .selfDeclaration && task.status != .completed {
                 completeTask(with: nil)
             }
         }) {
             HStack {
                 Spacer()
-                Text(task.status == .completed ? "完了済み" : "完了")  // viewModel.taskからtaskに変更
+                Text(completeButtonTitle)
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundColor(.white)
                 Spacer()
@@ -165,12 +165,11 @@ struct TaskCardView: View {
             .background(buttonBackground)
             .cornerRadius(12)
         }
-        .disabled(task.status == .completed)  // viewModel.taskからtaskに変更
+        .disabled(task.status == .completed || task.status == .pendingApproval)
         .simultaneousGesture(
             LongPressGesture(minimumDuration: 0.5)
                 .onEnded { _ in
-                    // 長押し時の処理（写真証拠モード）
-                    if task.verificationMode == .photoEvidence && task.status != .completed {  // viewModel.taskからtaskに変更
+                    if task.verificationMode == .photoEvidence && task.status != .completed && task.status != .pendingApproval {
                         triggerCamera()
                     }
                 }
@@ -179,11 +178,21 @@ struct TaskCardView: View {
         .animation(.spring(response: 0.3), value: isPressed)
     }
     
+    private var completeButtonTitle: String {
+        switch task.status {
+        case .completed: return "完了済み"
+        case .pendingApproval: return "承認待ち"
+        default: return "完了"
+        }
+    }
+    
     // MARK: - Button Background
     @ViewBuilder
     private var buttonBackground: some View {
-        if task.status == .completed {  // viewModel.taskからtaskに変更
+        if task.status == .completed {
             Color.green
+        } else if task.status == .pendingApproval {
+            Color.orange
         } else {
             LinearGradient(
                 colors: [Color.blue, Color.purple],

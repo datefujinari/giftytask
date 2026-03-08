@@ -1,6 +1,7 @@
 import Foundation
 import FirebaseAuth
 import FirebaseFirestore
+import FirebaseMessaging
 import Combine
 
 // MARK: - Auth Manager
@@ -28,6 +29,7 @@ final class AuthManager: ObservableObject {
     @Published var errorMessage: String?
     
     private var authStateListener: AuthStateDidChangeListenerHandle?
+    private var fcmTokenObserver: NSObjectProtocol?
     
     private init() {
         authStateListener = auth.addStateDidChangeListener { [weak self] _, user in
@@ -35,9 +37,16 @@ final class AuthManager: ObservableObject {
                 self?.currentUser = user
                 if let uid = user?.uid {
                     await self?.fetchUserProfile(uid: uid)
+                    await self?.refreshFCMTokenIfNeeded()
                 } else {
                     self?.userProfile = nil
                 }
+            }
+        }
+        fcmTokenObserver = NotificationCenter.default.addObserver(forName: .fcmTokenDidUpdate, object: nil, queue: .main) { [weak self] note in
+            guard let token = note.userInfo?["token"] as? String, !token.isEmpty else { return }
+            _Concurrency.Task { @MainActor in
+                await self?.saveFCMToken(token)
             }
         }
     }
@@ -45,6 +54,9 @@ final class AuthManager: ObservableObject {
     deinit {
         if let handle = authStateListener {
             auth.removeStateDidChangeListener(handle)
+        }
+        if let o = fcmTokenObserver {
+            NotificationCenter.default.removeObserver(o)
         }
     }
     
@@ -72,16 +84,19 @@ final class AuthManager: ObservableObject {
         displayName: String,
         avatarEmoji: String = "👤",
         friendList: [String] = [],
-        totalCompletedCount: Int? = nil
+        totalCompletedCount: Int? = nil,
+        fcmToken: String? = nil
     ) async throws {
         let current = userProfile
         let count = totalCompletedCount ?? current?.totalCompletedCount ?? 0
+        let token = fcmToken ?? current?.fcmToken
         let profile = UserProfile(
             uid: uid,
             displayName: displayName,
             avatarEmoji: avatarEmoji,
             friendList: friendList,
-            totalCompletedCount: count
+            totalCompletedCount: count,
+            fcmToken: token
         )
         var data: [String: Any] = [
             "uid": profile.uid,
@@ -90,11 +105,38 @@ final class AuthManager: ObservableObject {
             "friend_list": profile.friendList,
             "total_completed_count": profile.totalCompletedCount
         ]
+        if let t = token, !t.isEmpty {
+            data["fcm_token"] = t
+        }
         let ref = db.collection(usersCollection).document(uid)
         try await setDataAsync(ref: ref, data: data)
         userProfile = profile
         UserDefaults.standard.set(displayName, forKey: Self.displayNameKey(uid: uid))
         objectWillChange.send()
+    }
+    
+    /// FCM トークンを Firestore に保存（ログイン中のみ）
+    func saveFCMToken(_ token: String) async {
+        guard let uid = currentUser?.uid, !token.isEmpty else { return }
+        do {
+            let ref = db.collection(usersCollection).document(uid)
+            try await setDataAsync(ref: ref, data: ["fcm_token": token])
+            if var p = userProfile {
+                p.fcmToken = token
+                userProfile = p
+                objectWillChange.send()
+            }
+        } catch {
+            print("saveFCMToken error: \(error)")
+        }
+    }
+    
+    /// プロフィール取得後に FCM トークンを取得して保存
+    private func refreshFCMTokenIfNeeded() async {
+        let token = await Messaging.messaging().token()
+        if let t = token, !t.isEmpty {
+            await saveFCMToken(t)
+        }
     }
     
     /// 他ユーザーのプロフィールを取得（表示名表示用、Firestoreルールで read 許可が必要）
@@ -107,12 +149,14 @@ final class AuthManager: ObservableObject {
             let avatarEmoji = data["avatar_emoji"] as? String ?? "👤"
             let friendList = data["friend_list"] as? [String] ?? []
             let totalCompletedCount = data["total_completed_count"] as? Int ?? 0
+            let fcmToken = data["fcm_token"] as? String
             return UserProfile(
                 uid: uid,
                 displayName: displayName,
                 avatarEmoji: avatarEmoji,
                 friendList: friendList,
-                totalCompletedCount: totalCompletedCount
+                totalCompletedCount: totalCompletedCount,
+                fcmToken: fcmToken
             )
         } catch {
             return nil
@@ -130,12 +174,14 @@ final class AuthManager: ObservableObject {
                 let avatarEmoji = data["avatar_emoji"] as? String ?? "👤"
                 let friendList = data["friend_list"] as? [String] ?? []
                 let totalCompletedCount = data["total_completed_count"] as? Int ?? 0
+                let fcmToken = data["fcm_token"] as? String
                 userProfile = UserProfile(
                     uid: uid,
                     displayName: displayName,
                     avatarEmoji: avatarEmoji,
                     friendList: friendList,
-                    totalCompletedCount: totalCompletedCount
+                    totalCompletedCount: totalCompletedCount,
+                    fcmToken: fcmToken
                 )
                 UserDefaults.standard.set(displayName, forKey: Self.displayNameKey(uid: uid))
             } else {

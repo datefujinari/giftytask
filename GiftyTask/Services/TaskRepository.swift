@@ -17,6 +17,7 @@ struct FirestoreTaskDTO: Codable, Identifiable {
     var senderName: String?
     var senderEmoji: String?
     var senderTotalCompletedCount: Int
+    var completionImageURL: String?
     
     enum CodingKeys: String, CodingKey {
         case id
@@ -32,6 +33,7 @@ struct FirestoreTaskDTO: Codable, Identifiable {
         case senderName = "sender_name"
         case senderEmoji = "sender_emoji"
         case senderTotalCompletedCount = "sender_total_completed_count"
+        case completionImageURL = "completion_image_url"
     }
     
     init?(data: [String: Any]) {
@@ -58,6 +60,7 @@ struct FirestoreTaskDTO: Codable, Identifiable {
         self.senderName = data["sender_name"] as? String
         self.senderEmoji = data["sender_emoji"] as? String
         self.senderTotalCompletedCount = (data["sender_total_completed_count"] as? Int) ?? 0
+        self.completionImageURL = data["completion_image_url"] as? String
     }
     
     /// 復活対象か（status==completed かつ 未達 かつ 最終完了が今日でない）
@@ -156,6 +159,30 @@ final class TaskRepository: ObservableObject {
         return (taskId, giftId)
     }
     
+    /// sender_id が指定UIDと一致するタスクをリアルタイム購読（送信したタスク・承認待ち一覧用）
+    func addSentTasksListener(
+        senderId: String,
+        onUpdate: @escaping ([FirestoreTaskDTO]) -> Void
+    ) -> ListenerRegistration {
+        let query = db.collection(tasksCollection)
+            .whereField("sender_id", isEqualTo: senderId)
+        return query.addSnapshotListener { snapshot, error in
+            if let error = error {
+                print("TaskRepository addSentTasksListener error: \(error.localizedDescription)")
+                DispatchQueue.main.async { onUpdate([]) }
+                return
+            }
+            guard let documents = snapshot?.documents else {
+                DispatchQueue.main.async { onUpdate([]) }
+                return
+            }
+            let tasks = documents.compactMap { doc -> FirestoreTaskDTO? in
+                FirestoreTaskDTO(data: doc.data())
+            }
+            DispatchQueue.main.async { onUpdate(tasks) }
+        }
+    }
+    
     /// receiver_id が指定UIDと一致するタスクをリアルタイム購読する
     /// - Parameters:
     ///   - receiverId: 自分のUID
@@ -185,14 +212,12 @@ final class TaskRepository: ObservableObject {
         }
     }
     
-    /// 届いたタスクを完了にする（累計: current_count+1、last_completed_date 更新。target_days に達した時のみギフトアンロック）
-    func completeReceivedTask(taskId: String, rewardId: String) async throws {
+    /// 届いたタスクの「完了報告」（画像任意）。status を "pending_approval" にし、送信者の承認を待つ。
+    func reportTaskCompletion(taskId: String, rewardId: String, completionImageURL: String? = nil) async throws {
         guard Auth.auth().currentUser != nil else {
             throw TaskRepositoryError.notAuthenticated
         }
         let taskRef = db.collection(tasksCollection).document(taskId)
-        let giftRef = db.collection(giftsCollection).document(rewardId)
-        
         let doc: DocumentSnapshot = try await withCheckedThrowingContinuation { continuation in
             taskRef.getDocument { snapshot, error in
                 if let error = error {
@@ -205,8 +230,7 @@ final class TaskRepository: ObservableObject {
             }
         }
         guard let data = doc.data(),
-              let current = data["current_count"] as? Int,
-              let target = data["target_days"] as? Int else {
+              let current = data["current_count"] as? Int else {
             return
         }
         let newCount = current + 1
@@ -214,8 +238,11 @@ final class TaskRepository: ObservableObject {
         var update: [String: Any] = [
             "current_count": newCount,
             "last_completed_date": now,
-            "status": "completed"
+            "status": "pending_approval"
         ]
+        if let url = completionImageURL, !url.isEmpty {
+            update["completion_image_url"] = url
+        }
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             taskRef.updateData(update) { error in
                 if let error = error {
@@ -225,17 +252,55 @@ final class TaskRepository: ObservableObject {
                 }
             }
         }
-        if newCount >= target {
-            try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-                giftRef.updateData(["is_unlocked": true]) { error in
-                    if let error = error {
-                        continuation.resume(throwing: error)
-                    } else {
-                        continuation.resume()
-                    }
+    }
+    
+    /// 送信者が完了報告を「承認」。status を "completed" にし、ギフトをアンロック。
+    func approveTaskCompletion(taskId: String, rewardId: String) async throws {
+        guard Auth.auth().currentUser != nil else {
+            throw TaskRepositoryError.notAuthenticated
+        }
+        let taskRef = db.collection(tasksCollection).document(taskId)
+        let giftRef = db.collection(giftsCollection).document(rewardId)
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            taskRef.updateData(["status": "completed"]) { error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                } else {
+                    continuation.resume()
                 }
             }
         }
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            giftRef.updateData(["is_unlocked": true]) { error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                } else {
+                    continuation.resume()
+                }
+            }
+        }
+    }
+    
+    /// 送信者が完了報告を「差し戻し」。status を "active" に戻す。
+    func rejectTaskCompletion(taskId: String) async throws {
+        guard Auth.auth().currentUser != nil else {
+            throw TaskRepositoryError.notAuthenticated
+        }
+        let taskRef = db.collection(tasksCollection).document(taskId)
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            taskRef.updateData(["status": "active"]) { error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                } else {
+                    continuation.resume()
+                }
+            }
+        }
+    }
+    
+    /// 届いたタスクの完了報告（画像なし・旧API互換）。status を "pending_approval" にする。承認は送信者が approveTaskCompletion で行う。
+    func completeReceivedTask(taskId: String, rewardId: String) async throws {
+        try await reportTaskCompletion(taskId: taskId, rewardId: rewardId, completionImageURL: nil)
     }
     
     /// 復活対象タスクの status を "active" に戻す（last_completed_date が今日でない場合）

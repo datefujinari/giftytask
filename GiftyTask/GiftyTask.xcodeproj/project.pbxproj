@@ -41,9 +41,15 @@
 		2AE4BD092F4C150000A70AAF /* SendTaskView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AE4BD072F4C150000A70AAF /* SendTaskView.swift */; };
 		2AE4BD0B2F4C160000A70AAF /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AE4BD0A2F4C160000A70AAF /* SettingsView.swift */; };
 		2AE4BD0E2F4C170000A70AAF /* ReceivedBoxView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AE4BD0D2F4C170000A70AAF /* ReceivedBoxView.swift */; };
+		2AE4BD522F4C13E000A70AAF /* ApprovalPendingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AE4BD512F4C13E000A70AAF /* ApprovalPendingView.swift */; };
+		2AE4BD542F4C13E000A70AAF /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AE4BD532F4C13E000A70AAF /* NotificationService.swift */; };
+		2AE4BD562F4C13E000A70AAF /* StorageService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AE4BD552F4C13E000A70AAF /* StorageService.swift */; };
+		2AE4BD502F4C13D800A70AAF /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AE4BD4F2F4C13D800A70AAF /* AppDelegate.swift */; };
 		2AE4BD362F4C13D600A70AAF /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 2AE4BD352F4C13D600A70AAF /* FirebaseCore */; };
 		2AE4BD392F4C13D600A70AAF /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 2AE4BD382F4C13D600A70AAF /* FirebaseAuth */; };
 		2AE4BD3B2F4C13D600A70AAF /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 2AE4BD3A2F4C13D600A70AAF /* FirebaseFirestore */; };
+		2AE4BD3C2F4C13D600A70AAF /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = 2AE4BD402F4C13D600A70AAF /* FirebaseMessaging */; };
+		2AE4BD3D2F4C13D600A70AAF /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = 2AE4BD412F4C13D600A70AAF /* FirebaseStorage */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -105,6 +111,10 @@
 		2AE4BD072F4C150000A70AAF /* SendTaskView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SendTaskView.swift; sourceTree = "<group>"; };
 		2AE4BD0A2F4C160000A70AAF /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		2AE4BD0D2F4C170000A70AAF /* ReceivedBoxView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReceivedBoxView.swift; sourceTree = "<group>"; };
+		2AE4BD4F2F4C13D800A70AAF /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		2AE4BD512F4C13E000A70AAF /* ApprovalPendingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApprovalPendingView.swift; sourceTree = "<group>"; };
+		2AE4BD532F4C13E000A70AAF /* NotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationService.swift; sourceTree = "<group>"; };
+		2AE4BD552F4C13E000A70AAF /* StorageService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageService.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -115,6 +125,8 @@
 				2AE4BD362F4C13D600A70AAF /* FirebaseCore in Frameworks */,
 				2AE4BD392F4C13D600A70AAF /* FirebaseAuth in Frameworks */,
 				2AE4BD3B2F4C13D600A70AAF /* FirebaseFirestore in Frameworks */,
+				2AE4BD3C2F4C13D600A70AAF /* FirebaseMessaging in Frameworks */,
+				2AE4BD3D2F4C13D600A70AAF /* FirebaseStorage in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -223,6 +235,7 @@
 		2A077DDF2F14980000F530AE /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				2AE4BD572F4C13E000A70AAF /* Approval */,
 				2A077DD82F14980000F530AE /* Activity */,
 				2A077DDB2F14980000F530AE /* Gift */,
 				2A077DDE2F14980000F530AE /* Task */,
@@ -230,6 +243,14 @@
 				2AE4BD0C2F4C160000A70AAF /* Settings */,
 			);
 			path = Views;
+			sourceTree = "<group>";
+		};
+		2AE4BD572F4C13E000A70AAF /* Approval */ = {
+			isa = PBXGroup;
+			children = (
+				2AE4BD512F4C13E000A70AAF /* ApprovalPendingView.swift */,
+			);
+			path = Approval;
 			sourceTree = "<group>";
 		};
 		2AE4BD0F2F4C170000A70AAF /* ReceivedBox */ = {
@@ -274,6 +295,7 @@
 			isa = PBXGroup;
 			children = (
 				2A70515E2F165BA6000F5A24 /* Preview Content */,
+				2AE4BD4F2F4C13D800A70AAF /* AppDelegate.swift */,
 				2A70515F2F165BA6000F5A24 /* Assets.xcassets */,
 				2A7051602F165BA6000F5A24 /* GiftyTaskApp.swift */,
 				2A70516A2F165BA6000F5A24 /* GoogleService-Info.plist */,
@@ -297,6 +319,8 @@
 			isa = PBXGroup;
 			children = (
 				2AE4BD022F4C140000A70AAF /* AuthManager.swift */,
+				2AE4BD532F4C13E000A70AAF /* NotificationService.swift */,
+				2AE4BD552F4C13E000A70AAF /* StorageService.swift */,
 				2AE4BD062F4C150000A70AAF /* TaskRepository.swift */,
 			);
 			path = Services;
@@ -467,6 +491,10 @@
 				2AE4BD092F4C150000A70AAF /* SendTaskView.swift in Sources */,
 				2AE4BD0B2F4C160000A70AAF /* SettingsView.swift in Sources */,
 				2AE4BD0E2F4C170000A70AAF /* ReceivedBoxView.swift in Sources */,
+				2AE4BD502F4C13D800A70AAF /* AppDelegate.swift in Sources */,
+				2AE4BD522F4C13E000A70AAF /* ApprovalPendingView.swift in Sources */,
+				2AE4BD542F4C13E000A70AAF /* NotificationService.swift in Sources */,
+				2AE4BD562F4C13E000A70AAF /* StorageService.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -822,6 +850,16 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 2AE4BD372F4C13D600A70AAF /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = FirebaseFirestore;
+		};
+		2AE4BD402F4C13D600A70AAF /* FirebaseMessaging */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 2AE4BD372F4C13D600A70AAF /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseMessaging;
+		};
+		2AE4BD412F4C13D600A70AAF /* FirebaseStorage */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 2AE4BD372F4C13D600A70AAF /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseStorage;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
