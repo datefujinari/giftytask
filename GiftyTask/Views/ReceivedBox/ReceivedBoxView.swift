@@ -102,17 +102,13 @@ struct ReceivedBoxCardView: View {
         VStack(alignment: .leading, spacing: 12) {
             // 送り主を大きく表示
             HStack(alignment: .center, spacing: 12) {
-                Text(dto.senderEmoji ?? "👤")
-                    .font(.system(size: 40))
                 VStack(alignment: .leading, spacing: 2) {
+                    Text("From:")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
                     Text(senderDisplayName)
                         .font(.headline)
                         .foregroundColor(.primary)
-                    Text("From: \(dto.senderId)")
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
                 }
                 Spacer()
                 // 累計達成数（ステータス）

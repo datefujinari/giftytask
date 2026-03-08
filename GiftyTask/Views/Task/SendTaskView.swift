@@ -14,6 +14,7 @@ struct SendTaskView: View {
     @State private var isSending = false
     @State private var errorMessage: String?
     @State private var showSuccess = false
+    @State private var friendDisplayNames: [String: String] = [:]
     
     private var friendList: [String] {
         authManager.userProfile?.friendList ?? []
@@ -31,8 +32,8 @@ struct SendTaskView: View {
                                 HapticManager.shared.selectionChanged()
                             } label: {
                                 HStack {
-                                    Text(uid)
-                                        .font(.system(.body, design: .monospaced))
+                                    Text(friendDisplayNames[uid] ?? uid)
+                                        .font(.body)
                                         .foregroundColor(.primary)
                                         .lineLimit(1)
                                         .truncationMode(.middle)
@@ -116,7 +117,20 @@ struct SendTaskView: View {
             } message: {
                 Text("タスクを送信しました。相手が承諾するとタスクが開始されます。")
             }
+            .task(id: friendList.map { $0 }.joined(separator: ",")) {
+                await loadFriendDisplayNames()
+            }
         }
+    }
+    
+    private func loadFriendDisplayNames() async {
+        var names: [String: String] = [:]
+        for uid in friendList {
+            if let profile = await AuthManager.shared.fetchOtherUserProfile(uid: uid) {
+                names[uid] = profile.displayName
+            }
+        }
+        friendDisplayNames = names
     }
     
     private var canSend: Bool {

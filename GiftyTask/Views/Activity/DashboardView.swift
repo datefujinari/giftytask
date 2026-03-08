@@ -318,12 +318,17 @@ extension Color {
 // MARK: - User Info Card
 struct UserInfoCard: View {
     let user: User
+    @ObservedObject private var authManager = AuthManager.shared
+    
+    private var displayName: String {
+        authManager.userProfile?.displayName ?? user.displayName
+    }
     
     var body: some View {
         VStack(spacing: 16) {
             HStack {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text(user.displayName)
+                    Text(displayName)
                         .font(.system(size: 24, weight: .bold))
                     
                     HStack(spacing: 16) {

@@ -50,6 +50,18 @@ struct SettingsView: View {
                             .font(.caption)
                             .foregroundColor(msg.contains("失敗") ? .red : .green)
                     }
+                    if authManager.currentUser != nil, let saved = authManager.userProfile?.displayName {
+                        HStack {
+                            Text("保存済みの表示名")
+                                .foregroundColor(.secondary)
+                            Spacer()
+                            Text(saved)
+                                .font(.subheadline.weight(.medium))
+                                .foregroundColor(.primary)
+                                .lineLimit(1)
+                        }
+                        .font(.caption)
+                    }
                 } header: {
                     Text("プロフィール")
                 }

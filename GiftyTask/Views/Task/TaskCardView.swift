@@ -117,11 +117,8 @@ struct TaskCardView: View {
     @ViewBuilder
     private var fromLabel: some View {
         let name = task.senderName ?? task.fromDisplayName ?? "匿名ユーザー"
-        let emoji = task.senderEmoji ?? "👤"
         if task.senderId != nil || task.fromDisplayName != nil || task.senderName != nil {
             HStack(spacing: 4) {
-                Text(emoji)
-                    .font(.system(size: 14))
                 Text(name)
                     .font(.system(size: 12))
                     .foregroundColor(.secondary)

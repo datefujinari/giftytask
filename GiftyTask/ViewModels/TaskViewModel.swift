@@ -452,6 +452,8 @@ class TaskViewModel: ObservableObject {
             unlockCondition: condition,
             taskId: dto.id,
             assignedFromUserId: dto.senderId,
+            assignedFromUserName: dto.senderName,
+            assignedFromUserEmoji: dto.senderEmoji,
             price: 0,
             currency: "JPY"
         )

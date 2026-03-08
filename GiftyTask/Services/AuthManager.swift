@@ -13,6 +13,8 @@ final class AuthManager: ObservableObject {
     private let db = Firestore.firestore()
     private let usersCollection = "users"
     
+    private static func displayNameKey(uid: String) -> String { "gifty_display_name_\(uid)" }
+    
     /// 現在のユーザー（ログイン済み）
     @Published private(set) var currentUser: FirebaseAuth.User?
     
@@ -91,16 +93,40 @@ final class AuthManager: ObservableObject {
         let ref = db.collection(usersCollection).document(uid)
         try await setDataAsync(ref: ref, data: data)
         userProfile = profile
+        UserDefaults.standard.set(displayName, forKey: Self.displayNameKey(uid: uid))
         objectWillChange.send()
     }
     
-    /// Firestore からユーザープロフィールを取得
+    /// 他ユーザーのプロフィールを取得（表示名表示用、Firestoreルールで read 許可が必要）
+    func fetchOtherUserProfile(uid: String) async -> UserProfile? {
+        do {
+            let ref = db.collection(usersCollection).document(uid)
+            let doc = try await getDocumentAsync(ref: ref)
+            guard doc.exists, let data = doc.data() else { return nil }
+            let displayName = data["display_name"] as? String ?? "ユーザー"
+            let avatarEmoji = data["avatar_emoji"] as? String ?? "👤"
+            let friendList = data["friend_list"] as? [String] ?? []
+            let totalCompletedCount = data["total_completed_count"] as? Int ?? 0
+            return UserProfile(
+                uid: uid,
+                displayName: displayName,
+                avatarEmoji: avatarEmoji,
+                friendList: friendList,
+                totalCompletedCount: totalCompletedCount
+            )
+        } catch {
+            return nil
+        }
+    }
+    
+    /// Firestore からユーザープロフィールを取得（自分のプロフィール用）
     func fetchUserProfile(uid: String) async {
+        let cachedDisplayName = UserDefaults.standard.string(forKey: Self.displayNameKey(uid: uid))
         do {
             let ref = db.collection(usersCollection).document(uid)
             let doc = try await getDocumentAsync(ref: ref)
             if doc.exists, let data = doc.data() {
-                let displayName = data["display_name"] as? String ?? "ユーザー"
+                let displayName = data["display_name"] as? String ?? cachedDisplayName ?? "ユーザー"
                 let avatarEmoji = data["avatar_emoji"] as? String ?? "👤"
                 let friendList = data["friend_list"] as? [String] ?? []
                 let totalCompletedCount = data["total_completed_count"] as? Int ?? 0
@@ -111,11 +137,23 @@ final class AuthManager: ObservableObject {
                     friendList: friendList,
                     totalCompletedCount: totalCompletedCount
                 )
+                UserDefaults.standard.set(displayName, forKey: Self.displayNameKey(uid: uid))
             } else {
-                try await createOrUpdateUserProfile(uid: uid, displayName: "ユーザー")
+                let initialName = cachedDisplayName ?? "ユーザー"
+                try await createOrUpdateUserProfile(uid: uid, displayName: initialName)
             }
         } catch {
-            errorMessage = "プロフィール取得に失敗: \(error.localizedDescription)"
+            if let cached = cachedDisplayName {
+                userProfile = UserProfile(
+                    uid: uid,
+                    displayName: cached,
+                    avatarEmoji: "👤",
+                    friendList: [],
+                    totalCompletedCount: 0
+                )
+            } else {
+                errorMessage = "プロフィール取得に失敗: \(error.localizedDescription)"
+            }
         }
     }
     
