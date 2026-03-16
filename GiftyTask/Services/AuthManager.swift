@@ -62,7 +62,7 @@ final class AuthManager: ObservableObject {
     
     // MARK: - 匿名ログイン
     
-    /// 匿名ログイン（後でメール/Apple等に連携可能）
+    /// 匿名ログイン（後でメール/Apple等に連携可能）。既存ドキュメントがあれば取得のみ行い、ない場合のみ新規作成する。
     func signInAnonymously() async throws {
         isLoading = true
         errorMessage = nil
@@ -70,10 +70,9 @@ final class AuthManager: ObservableObject {
         
         let result = try await auth.signInAnonymously()
         let uid = result.user.uid
-        let displayName = "ユーザー" // 初期表示名
-        
-        // Firestore にユーザープロフィールを作成
-        try await createOrUpdateUserProfile(uid: uid, displayName: displayName)
+        // 起動時は保存しない。まず Firestore に既存データがあるか確認し、あれば取得のみ
+        await fetchUserProfile(uid: uid)
+        // fetchUserProfile 内でドキュメントが存在しない場合のみ createOrUpdateUserProfile が呼ばれる
     }
     
     // MARK: - ユーザープロフィール（Firestore）
@@ -110,16 +109,18 @@ final class AuthManager: ObservableObject {
         }
         let ref = db.collection(usersCollection).document(uid)
         try await setDataAsync(ref: ref, data: data)
+        print("[AuthManager] Firestore へ書き込み（保存）: uid=\(uid), display_name=\(profile.displayName)")
         userProfile = profile
         UserDefaults.standard.set(displayName, forKey: Self.displayNameKey(uid: uid))
         objectWillChange.send()
     }
     
-    /// FCM トークンを Firestore に保存（ログイン中のみ）
+    /// FCM トークンを Firestore に保存（ログイン中のみ）。merge: true のため display_name は上書きされない。
     func saveFCMToken(_ token: String) async {
         guard let uid = currentUser?.uid, !token.isEmpty else { return }
         do {
             let ref = db.collection(usersCollection).document(uid)
+            print("[AuthManager] Firestore へ書き込み（保存）: fcm_token のみ merge, uid=\(uid)")
             try await setDataAsync(ref: ref, data: ["fcm_token": token])
             if var p = userProfile {
                 p.fcmToken = token
@@ -133,9 +134,13 @@ final class AuthManager: ObservableObject {
     
     /// プロフィール取得後に FCM トークンを取得して保存
     private func refreshFCMTokenIfNeeded() async {
-        let token = await Messaging.messaging().token()
-        if let t = token, !t.isEmpty {
-            await saveFCMToken(t)
+        do {
+            let token = try await Messaging.messaging().token()
+            if !token.isEmpty {
+                await saveFCMToken(token)
+            }
+        } catch {
+            print("refreshFCMTokenIfNeeded error: \(error.localizedDescription)")
         }
     }
     
@@ -163,19 +168,21 @@ final class AuthManager: ObservableObject {
         }
     }
     
-    /// Firestore からユーザープロフィールを取得（自分のプロフィール用）
+    /// Firestore からユーザープロフィールを取得（自分のプロフィール用）。再起動時は取得のみ行い、書き込みは「既存ドキュメントがない場合の新規作成」に限定する。
     func fetchUserProfile(uid: String) async {
         let cachedDisplayName = UserDefaults.standard.string(forKey: Self.displayNameKey(uid: uid))
         do {
             let ref = db.collection(usersCollection).document(uid)
             let doc = try await getDocumentAsync(ref: ref)
             if doc.exists, let data = doc.data() {
-                let displayName = data["display_name"] as? String ?? cachedDisplayName ?? "ユーザー"
+                print("[AuthManager] Firestore からデータを読み込み: uid=\(uid), raw keys=\(data.keys.sorted())")
+                // Firestore のスネークケースを Swift のプロパティにマッピング（CodingKeys と一致）
+                let displayName = (data["display_name"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? cachedDisplayName ?? "ユーザー"
                 let avatarEmoji = data["avatar_emoji"] as? String ?? "👤"
                 let friendList = data["friend_list"] as? [String] ?? []
                 let totalCompletedCount = data["total_completed_count"] as? Int ?? 0
                 let fcmToken = data["fcm_token"] as? String
-                userProfile = UserProfile(
+                let profile = UserProfile(
                     uid: uid,
                     displayName: displayName,
                     avatarEmoji: avatarEmoji,
@@ -183,20 +190,28 @@ final class AuthManager: ObservableObject {
                     totalCompletedCount: totalCompletedCount,
                     fcmToken: fcmToken
                 )
+                print("[AuthManager] マッピング後の displayName: \(profile.displayName)")
+                userProfile = profile
                 UserDefaults.standard.set(displayName, forKey: Self.displayNameKey(uid: uid))
+                objectWillChange.send()
             } else {
+                // 既存データがない場合のみ新規作成（新規登録時）
+                print("[AuthManager] Firestore にドキュメントなし → 新規作成のみ実行: uid=\(uid)")
                 let initialName = cachedDisplayName ?? "ユーザー"
                 try await createOrUpdateUserProfile(uid: uid, displayName: initialName)
             }
         } catch {
+            print("[AuthManager] fetchUserProfile エラー: \(error.localizedDescription)")
             if let cached = cachedDisplayName {
                 userProfile = UserProfile(
                     uid: uid,
                     displayName: cached,
                     avatarEmoji: "👤",
                     friendList: [],
-                    totalCompletedCount: 0
+                    totalCompletedCount: 0,
+                    fcmToken: nil
                 )
+                objectWillChange.send()
             } else {
                 errorMessage = "プロフィール取得に失敗: \(error.localizedDescription)"
             }
@@ -237,6 +252,7 @@ final class AuthManager: ObservableObject {
         let current = (userProfile?.totalCompletedCount ?? 0) + 1
         do {
             let ref = db.collection(usersCollection).document(uid)
+            print("[AuthManager] Firestore へ書き込み（保存）: total_completed_count のみ merge, uid=\(uid), count=\(current)")
             try await setDataAsync(ref: ref, data: [
                 "total_completed_count": current
             ])

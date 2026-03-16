@@ -1,20 +1,75 @@
 import SwiftUI
 
-// MARK: - 設定画面（プロフィール編集・UID表示・コピー・累計達成数）
+// MARK: - 設定画面（プロフィール編集・UID表示・コピー・累計達成数・承認待ち・テスト通知）
 struct SettingsView: View {
+    @EnvironmentObject var taskViewModel: TaskViewModel
     @ObservedObject private var authManager = AuthManager.shared
     @State private var showCopiedFeedback = false
     @State private var editingDisplayName = ""
     @State private var isSavingProfile = false
     @State private var profileSaveMessage: String?
+    @State private var showApprovalPending = false
+    @State private var testNotificationScheduled = false
+    @State private var lastTestNotificationInfo: String?
     
     private var currentUID: String {
         authManager.currentUser?.uid ?? "未ログイン"
     }
     
+    private var pendingApprovalCount: Int {
+        taskViewModel.pendingApprovalTasks.count
+    }
+    
     var body: some View {
         NavigationView {
             Form {
+                // 承認待ち・テスト通知
+                Section {
+                    Button {
+                        showApprovalPending = true
+                    } label: {
+                        HStack {
+                            Label("承認待ち", systemImage: "checkmark.circle.fill")
+                            if pendingApprovalCount > 0 {
+                                Spacer()
+                                Text("\(pendingApprovalCount)件")
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                    }
+                    Button {
+                        NotificationService.scheduleTestNotification(delaySeconds: 5)
+                        HapticManager.shared.mediumImpact()
+                        testNotificationScheduled = true
+                        let formatter = DateFormatter()
+                        formatter.dateFormat = "HH:mm:ss"
+                        lastTestNotificationInfo = "テスト通知を \(formatter.string(from: Date().addingTimeInterval(5))) 頃に予約しました"
+                        _Concurrency.Task { @MainActor in
+                            try? await _Concurrency.Task.sleep(nanoseconds: 8_000_000_000)
+                            testNotificationScheduled = false
+                        }
+                    } label: {
+                        HStack {
+                            Label("テスト通知を送る", systemImage: "bell.badge")
+                            if testNotificationScheduled {
+                                Spacer()
+                                Text("スケジュール済み…")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                    }
+                    if let info = lastTestNotificationInfo {
+                        Text(info)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                } header: {
+                    Text("通知・承認")
+                } footer: {
+                    Text("「テスト通知を送る」を押すと5秒後にローカル通知が届きます。AppDelegate が通知を正しく表示しているか確認できます。")
+                }
+                
                 // プロフィール編集
                 Section {
                     TextField("ニックネーム", text: $editingDisplayName)
@@ -124,6 +179,10 @@ struct SettingsView: View {
                     }
                 }
             }
+            .sheet(isPresented: $showApprovalPending) {
+                ApprovalPendingView()
+                    .environmentObject(taskViewModel)
+            }
         }
     }
     
@@ -159,4 +218,5 @@ struct SettingsView: View {
 
 #Preview {
     SettingsView()
+        .environmentObject(TaskViewModel())
 }

@@ -93,12 +93,13 @@ struct ApprovalPendingCardView: View {
                     case .failure:
                         placeholderImage
                     case .empty:
-                        ProgressView()
-                            .frame(height: 120)
+                        placeholderImage
+                            .overlay(ProgressView())
                     @unknown default:
                         placeholderImage
                     }
                 }
+                .frame(minHeight: 120)
             } else {
                 placeholderImage
             }

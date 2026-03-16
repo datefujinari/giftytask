@@ -46,4 +46,25 @@ enum NotificationService {
         )
         UNUserNotificationCenter.current().add(request) { _ in }
     }
+    
+    /// テスト用：指定秒数後にローカル通知を送る（AppDelegate の通知ハンドリング確認用）
+    static func scheduleTestNotification(delaySeconds: TimeInterval = 5) {
+        UNUserNotificationCenter.current().getNotificationSettings { settings in
+            print("[NotificationService] authorizationStatus = \(settings.authorizationStatus.rawValue)")
+        }
+        let content = UNMutableNotificationContent()
+        content.title = "テスト通知"
+        content.body = "\(Int(delaySeconds))秒後に届くテストです。通知が表示されれば AppDelegate は正常に動作しています。"
+        content.sound = .default
+        let request = UNNotificationRequest(
+            identifier: "test_notification_\(UUID().uuidString)",
+            content: content,
+            trigger: UNTimeIntervalNotificationTrigger(timeInterval: delaySeconds, repeats: false)
+        )
+        UNUserNotificationCenter.current().add(request) { error in
+            if let error = error {
+                print("テスト通知スケジュール失敗: \(error.localizedDescription)")
+            }
+        }
+    }
 }

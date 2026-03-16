@@ -50,6 +50,7 @@ struct ContentView: View {
                 .tag(3)
             
             SettingsView()
+                .environmentObject(taskViewModel)
                 .tabItem {
                     Label("設定", systemImage: "gearshape.fill")
                 }

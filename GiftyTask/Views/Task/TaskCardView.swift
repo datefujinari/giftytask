@@ -7,8 +7,10 @@ struct TaskCardView: View {
     @State private var isPressed = false
     @State private var showCamera = false
     @State private var showPhotoPicker = false
+    @State private var showPhotoSourceDialog = false
     @State private var selectedPhoto: UIImage?
-    @State private var isProcessing = false  // TaskCardViewModelから移動
+    @State private var selectedPhotoItem: PhotosPickerItem?
+    @State private var isProcessing = false
     
     let onComplete: (Task, UIImage?) -> Void
     var onEdit: (() -> Void)? = nil
@@ -33,10 +35,24 @@ struct TaskCardView: View {
         .sheet(isPresented: $showCamera) {
             CameraView(selectedImage: $selectedPhoto, isPresented: $showCamera)
         }
+        .sheet(isPresented: $showPhotoPicker) {
+            PhotoLibraryPickerView(
+                selectedPhotoItem: $selectedPhotoItem,
+                isPresented: $showPhotoPicker
+            )
+        }
         .onChange(of: selectedPhoto) { _, newValue in
             if let photo = newValue {
                 completeTask(with: photo)
             }
+        }
+        .onChange(of: selectedPhotoItem, perform: handleSelectedPhotoItem)
+        .confirmationDialog("完了報告に画像を添付", isPresented: $showPhotoSourceDialog, titleVisibility: .visible) {
+            Button("カメラで撮影") { showCamera = true }
+            Button("フォトライブラリから選択") { showPhotoPicker = true }
+            Button("キャンセル", role: .cancel) { }
+        } message: {
+            Text("画像を選択してください")
         }
     }
     
@@ -152,6 +168,8 @@ struct TaskCardView: View {
             if task.status == .pendingApproval { return }
             if task.verificationMode == .selfDeclaration && task.status != .completed {
                 completeTask(with: nil)
+            } else if task.verificationMode == .photoEvidence && task.status != .completed {
+                showPhotoSourceDialog = true
             }
         }) {
             HStack {
@@ -174,6 +192,9 @@ struct TaskCardView: View {
                     }
                 }
         )
+        .onChange(of: showPhotoSourceDialog) { _, newValue in
+            if !newValue { selectedPhotoItem = nil }
+        }
         .scaleEffect(isPressed ? 0.95 : 1.0)
         .animation(.spring(response: 0.3), value: isPressed)
     }
@@ -214,6 +235,17 @@ struct TaskCardView: View {
     }
     
     // MARK: - Helper Methods
+    
+    private func handleSelectedPhotoItem(_ newValue: PhotosPickerItem?) {
+        guard let item = newValue else { return }
+        showPhotoPicker = false
+        _Concurrency.Task {
+            if let data = try? await item.loadTransferable(type: Data.self),
+               let image = UIImage(data: data) {
+                await MainActor.run { selectedPhoto = image }
+            }
+        }
+    }
     
     private func priorityColor(_ priority: TaskPriority) -> Color {
         switch priority {
@@ -288,6 +320,31 @@ struct CameraView: UIViewControllerRepresentable {
         
         func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
             parent.isPresented = false
+        }
+    }
+}
+
+// MARK: - Photo Library Picker Sheet
+struct PhotoLibraryPickerView: View {
+    @Binding var selectedPhotoItem: PhotosPickerItem?
+    @Binding var isPresented: Bool
+    
+    var body: some View {
+        NavigationView {
+            PhotosPicker(
+                selection: $selectedPhotoItem,
+                matching: .images
+            ) {
+                Label("写真を選択", systemImage: "photo.on.rectangle.angled")
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+            .navigationTitle("フォトライブラリ")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("キャンセル") { isPresented = false }
+                }
+            }
         }
     }
 }

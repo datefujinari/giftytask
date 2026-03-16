@@ -41,15 +41,15 @@
 		2AE4BD092F4C150000A70AAF /* SendTaskView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AE4BD072F4C150000A70AAF /* SendTaskView.swift */; };
 		2AE4BD0B2F4C160000A70AAF /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AE4BD0A2F4C160000A70AAF /* SettingsView.swift */; };
 		2AE4BD0E2F4C170000A70AAF /* ReceivedBoxView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AE4BD0D2F4C170000A70AAF /* ReceivedBoxView.swift */; };
-		2AE4BD522F4C13E000A70AAF /* ApprovalPendingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AE4BD512F4C13E000A70AAF /* ApprovalPendingView.swift */; };
-		2AE4BD542F4C13E000A70AAF /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AE4BD532F4C13E000A70AAF /* NotificationService.swift */; };
-		2AE4BD562F4C13E000A70AAF /* StorageService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AE4BD552F4C13E000A70AAF /* StorageService.swift */; };
-		2AE4BD502F4C13D800A70AAF /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AE4BD4F2F4C13D800A70AAF /* AppDelegate.swift */; };
 		2AE4BD362F4C13D600A70AAF /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 2AE4BD352F4C13D600A70AAF /* FirebaseCore */; };
 		2AE4BD392F4C13D600A70AAF /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 2AE4BD382F4C13D600A70AAF /* FirebaseAuth */; };
 		2AE4BD3B2F4C13D600A70AAF /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 2AE4BD3A2F4C13D600A70AAF /* FirebaseFirestore */; };
 		2AE4BD3C2F4C13D600A70AAF /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = 2AE4BD402F4C13D600A70AAF /* FirebaseMessaging */; };
 		2AE4BD3D2F4C13D600A70AAF /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = 2AE4BD412F4C13D600A70AAF /* FirebaseStorage */; };
+		2AE4BD502F4C13D800A70AAF /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AE4BD4F2F4C13D800A70AAF /* AppDelegate.swift */; };
+		2AE4BD522F4C13E000A70AAF /* ApprovalPendingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AE4BD512F4C13E000A70AAF /* ApprovalPendingView.swift */; };
+		2AE4BD542F4C13E000A70AAF /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AE4BD532F4C13E000A70AAF /* NotificationService.swift */; };
+		2AE4BD562F4C13E000A70AAF /* StorageService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AE4BD552F4C13E000A70AAF /* StorageService.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -94,12 +94,14 @@
 		2A70515F2F165BA6000F5A24 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		2A7051602F165BA6000F5A24 /* GiftyTaskApp.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = GiftyTaskApp.swift; sourceTree = "<group>"; };
 		2A7051612F165BA6000F5A24 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		2A70516A2F165BA6000F5A24 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		2A7051672F165BB3000F5A24 /* ContentView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		2A70516A2F165BA6000F5A24 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		2A77A0002F24900001F53AAE /* ActivityData+Heatmap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ActivityData+Heatmap.swift"; sourceTree = "<group>"; };
 		2A77A0022F24900002F53AAE /* GiftyHeatmapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GiftyHeatmapView.swift; sourceTree = "<group>"; };
 		2A86FBAB2F447085004D9CF4 /* UserDefaultsStorage.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = UserDefaultsStorage.swift; sourceTree = "<group>"; };
 		2A86FBAD2F4470C9004D9CF4 /* EpicViewModel.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = EpicViewModel.swift; sourceTree = "<group>"; };
+		2AAF3E052F5EFC5200DBB9AD /* GiftyTaskRelease.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; name = GiftyTaskRelease.entitlements; path = GiftyTask/GiftyTaskRelease.entitlements; sourceTree = "<group>"; };
+		2AAF3E062F5EFC6600DBB9AD /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; name = Info.plist; path = GiftyTask/Info.plist; sourceTree = "<group>"; };
 		2AC0255A2F2377AD00195B8F /* TaskViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskViewModel.swift; sourceTree = "<group>"; };
 		2AD530352F2458D30053F87D /* ActivityViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityViewModel.swift; sourceTree = "<group>"; };
 		2AE001012F25000100F53AAE /* AddTaskView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AddTaskView.swift; sourceTree = "<group>"; };
@@ -150,6 +152,8 @@
 		2A077D8B2F14971E00F530AE = {
 			isa = PBXGroup;
 			children = (
+				2AAF3E062F5EFC6600DBB9AD /* Info.plist */,
+				2AAF3E052F5EFC5200DBB9AD /* GiftyTaskRelease.entitlements */,
 				2AC025592F23775400195B8F /* ViewModels */,
 				2AE4BD052F4C140000A70AAF /* Services */,
 				2A7051672F165BB3000F5A24 /* ContentView.swift */,
@@ -245,30 +249,6 @@
 			path = Views;
 			sourceTree = "<group>";
 		};
-		2AE4BD572F4C13E000A70AAF /* Approval */ = {
-			isa = PBXGroup;
-			children = (
-				2AE4BD512F4C13E000A70AAF /* ApprovalPendingView.swift */,
-			);
-			path = Approval;
-			sourceTree = "<group>";
-		};
-		2AE4BD0F2F4C170000A70AAF /* ReceivedBox */ = {
-			isa = PBXGroup;
-			children = (
-				2AE4BD0D2F4C170000A70AAF /* ReceivedBoxView.swift */,
-			);
-			path = ReceivedBox;
-			sourceTree = "<group>";
-		};
-		2AE4BD0C2F4C160000A70AAF /* Settings */ = {
-			isa = PBXGroup;
-			children = (
-				2AE4BD0A2F4C160000A70AAF /* SettingsView.swift */,
-			);
-			path = Settings;
-			sourceTree = "<group>";
-		};
 		2A077DE52F14980000F530AE /* Models */ = {
 			isa = PBXGroup;
 			children = (
@@ -324,6 +304,30 @@
 				2AE4BD062F4C150000A70AAF /* TaskRepository.swift */,
 			);
 			path = Services;
+			sourceTree = "<group>";
+		};
+		2AE4BD0C2F4C160000A70AAF /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				2AE4BD0A2F4C160000A70AAF /* SettingsView.swift */,
+			);
+			path = Settings;
+			sourceTree = "<group>";
+		};
+		2AE4BD0F2F4C170000A70AAF /* ReceivedBox */ = {
+			isa = PBXGroup;
+			children = (
+				2AE4BD0D2F4C170000A70AAF /* ReceivedBoxView.swift */,
+			);
+			path = ReceivedBox;
+			sourceTree = "<group>";
+		};
+		2AE4BD572F4C13E000A70AAF /* Approval */ = {
+			isa = PBXGroup;
+			children = (
+				2AE4BD512F4C13E000A70AAF /* ApprovalPendingView.swift */,
+			);
+			path = Approval;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -654,13 +658,14 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = GiftyTask/GiftyTaskRelease.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "";
 				DEVELOPMENT_TEAM = DHTJBVPYQB;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = "";
+				INFOPLIST_FILE = GiftyTask/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";
 				INFOPLIST_KEY_NSCalendarsUsageDescription = "タスク完了の写真証拠を撮影するためにカメラへのアクセスが必要です";
 				INFOPLIST_KEY_NSCameraUsageDescription = "タスク完了の証拠写真を撮影するためにカメラを使用します。";
@@ -687,13 +692,14 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = GiftyTask/GiftyTaskRelease.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "";
 				DEVELOPMENT_TEAM = DHTJBVPYQB;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = "";
+				INFOPLIST_FILE = GiftyTask/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";
 				INFOPLIST_KEY_NSCalendarsUsageDescription = "タスク完了の写真証拠を撮影するためにカメラへのアクセスが必要です";
 				INFOPLIST_KEY_NSCameraUsageDescription = "タスク完了の証拠写真を撮影するためにカメラを使用します。";

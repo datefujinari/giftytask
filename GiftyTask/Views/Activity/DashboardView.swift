@@ -141,8 +141,16 @@ struct DashboardView: View {
             onComplete: { completedTask, photo in
                 _Concurrency.Task { @MainActor in
                     do {
-                        let photoURL = photo != nil ? "photo_\(completedTask.id)" : nil
-                        let result = try await taskViewModel.completeTask(completedTask, photoURL: photoURL)
+                        var completionImageURL: String?
+                        if let image = photo, completedTask.senderId != nil {
+                            completionImageURL = try await StorageService.uploadCompletionImage(taskId: completedTask.id, image: image)
+                        }
+                        let photoURL = (photo != nil && completedTask.senderId == nil) ? "photo_\(completedTask.id)" : nil
+                        let result = try await taskViewModel.completeTask(
+                            completedTask,
+                            photoURL: photoURL,
+                            completionImageURL: completionImageURL
+                        )
                         activityViewModel.recordTaskCompletion(
                             xpGained: result.xpGained,
                             totalTasksCount: taskViewModel.todayTasks.count
@@ -150,13 +158,15 @@ struct DashboardView: View {
                         let leveledUp = activityViewModel.addXPToUser(result.xpGained)
                         if leveledUp { HapticManager.shared.levelUp() }
                         activityViewModel.generateHeatmapData()
-                        giftViewModel.checkAndUnlockGifts(
-                            completedTask: result.completedTask,
-                            taskViewModel: taskViewModel,
-                            activityViewModel: activityViewModel
-                        )
+                        if result.completedTask.status == .completed {
+                            giftViewModel.checkAndUnlockGifts(
+                                completedTask: result.completedTask,
+                                taskViewModel: taskViewModel,
+                                activityViewModel: activityViewModel
+                            )
+                        }
                     } catch {
-                        print("❌ エラー: \(error.localizedDescription)")
+                        taskViewModel.errorMessage = error.localizedDescription
                     }
                 }
             },
