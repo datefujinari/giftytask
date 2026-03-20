@@ -38,7 +38,7 @@
 		2AE4BD032F4C140000A70AAF /* UserProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AE4BD012F4C140000A70AAF /* UserProfile.swift */; };
 		2AE4BD042F4C140000A70AAF /* AuthManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AE4BD022F4C140000A70AAF /* AuthManager.swift */; };
 		2AE4BD082F4C150000A70AAF /* TaskRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AE4BD062F4C150000A70AAF /* TaskRepository.swift */; };
-		2AE4BD092F4C150000A70AAF /* SendTaskView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AE4BD072F4C150000A70AAF /* SendTaskView.swift */; };
+		2AE4BD592F4C180000A70AAF /* CreateAssignmentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AE4BD582F4C180000A70AAF /* CreateAssignmentView.swift */; };
 		2AE4BD0B2F4C160000A70AAF /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AE4BD0A2F4C160000A70AAF /* SettingsView.swift */; };
 		2AE4BD0E2F4C170000A70AAF /* ReceivedBoxView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AE4BD0D2F4C170000A70AAF /* ReceivedBoxView.swift */; };
 		2AE4BD362F4C13D600A70AAF /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 2AE4BD352F4C13D600A70AAF /* FirebaseCore */; };
@@ -110,7 +110,7 @@
 		2AE4BD012F4C140000A70AAF /* UserProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserProfile.swift; sourceTree = "<group>"; };
 		2AE4BD022F4C140000A70AAF /* AuthManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthManager.swift; sourceTree = "<group>"; };
 		2AE4BD062F4C150000A70AAF /* TaskRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskRepository.swift; sourceTree = "<group>"; };
-		2AE4BD072F4C150000A70AAF /* SendTaskView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SendTaskView.swift; sourceTree = "<group>"; };
+		2AE4BD582F4C180000A70AAF /* CreateAssignmentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateAssignmentView.swift; sourceTree = "<group>"; };
 		2AE4BD0A2F4C160000A70AAF /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		2AE4BD0D2F4C170000A70AAF /* ReceivedBoxView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReceivedBoxView.swift; sourceTree = "<group>"; };
 		2AE4BD4F2F4C13D800A70AAF /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
@@ -229,9 +229,9 @@
 			isa = PBXGroup;
 			children = (
 				2AE001012F25000100F53AAE /* AddTaskView.swift */,
+				2AE4BD582F4C180000A70AAF /* CreateAssignmentView.swift */,
 				2A077DDC2F14980000F530AE /* TaskCardView.swift */,
 				2A077DDD2F14980000F530AE /* TaskListView.swift */,
-				2AE4BD072F4C150000A70AAF /* SendTaskView.swift */,
 			);
 			path = Task;
 			sourceTree = "<group>";
@@ -492,7 +492,7 @@
 				2AE4BD032F4C140000A70AAF /* UserProfile.swift in Sources */,
 				2AE4BD042F4C140000A70AAF /* AuthManager.swift in Sources */,
 				2AE4BD082F4C150000A70AAF /* TaskRepository.swift in Sources */,
-				2AE4BD092F4C150000A70AAF /* SendTaskView.swift in Sources */,
+				2AE4BD592F4C180000A70AAF /* CreateAssignmentView.swift in Sources */,
 				2AE4BD0B2F4C160000A70AAF /* SettingsView.swift in Sources */,
 				2AE4BD0E2F4C170000A70AAF /* ReceivedBoxView.swift in Sources */,
 				2AE4BD502F4C13D800A70AAF /* AppDelegate.swift in Sources */,

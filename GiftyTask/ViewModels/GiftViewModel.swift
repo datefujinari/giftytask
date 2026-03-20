@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import FirebaseAuth
 
 // MARK: - Gift ViewModel
 @MainActor
@@ -44,8 +45,12 @@ class GiftViewModel: ObservableObject {
         price: Double,
         unlockCondition: UnlockCondition,
         epicId: String? = nil,
-        taskId: String? = nil
+        taskId: String? = nil,
+        linkedTaskTitle: String? = nil,
+        linkedTaskDueDate: Date? = nil
     ) -> Gift {
+        let currentUserId = Auth.auth().currentUser?.uid
+        let creatorName = AuthManager.shared.userProfile?.displayName
         let gift = Gift(
             title: title,
             description: description,
@@ -54,6 +59,10 @@ class GiftViewModel: ObservableObject {
             unlockCondition: unlockCondition,
             epicId: epicId,
             taskId: taskId,
+            createdByUserId: currentUserId,
+            createdByUserName: creatorName,
+            linkedTaskTitle: linkedTaskTitle,
+            linkedTaskDueDate: linkedTaskDueDate,
             price: price,
             currency: "JPY"
         )

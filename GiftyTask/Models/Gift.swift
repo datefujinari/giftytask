@@ -15,6 +15,10 @@ struct Gift: Identifiable, Codable, Hashable {
     var assignedFromUserId: String? // ソーシャル機能: 割り当て元ユーザーID
     var assignedFromUserName: String? // 割り当て元の表示名
     var assignedFromUserEmoji: String? // 割り当て元の絵文字
+    var createdByUserId: String? // 作成者UID
+    var createdByUserName: String? // 作成者表示名
+    var linkedTaskTitle: String? // 表示用: 紐づくタスク名
+    var linkedTaskDueDate: Date? // 表示用: 紐づくタスク期限
     var price: Double // 価格（円）
     var currency: String // 通貨コード（JPY）
     var gifteeGiftId: String? // giftee APIのギフトID
@@ -40,6 +44,10 @@ struct Gift: Identifiable, Codable, Hashable {
         assignedFromUserId: String? = nil,
         assignedFromUserName: String? = nil,
         assignedFromUserEmoji: String? = nil,
+        createdByUserId: String? = nil,
+        createdByUserName: String? = nil,
+        linkedTaskTitle: String? = nil,
+        linkedTaskDueDate: Date? = nil,
         price: Double,
         currency: String = "JPY",
         gifteeGiftId: String? = nil,
@@ -63,6 +71,10 @@ struct Gift: Identifiable, Codable, Hashable {
         self.assignedFromUserId = assignedFromUserId
         self.assignedFromUserName = assignedFromUserName
         self.assignedFromUserEmoji = assignedFromUserEmoji
+        self.createdByUserId = createdByUserId
+        self.createdByUserName = createdByUserName
+        self.linkedTaskTitle = linkedTaskTitle
+        self.linkedTaskDueDate = linkedTaskDueDate
         self.price = price
         self.currency = currency
         self.gifteeGiftId = gifteeGiftId

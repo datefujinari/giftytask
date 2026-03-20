@@ -1,4 +1,5 @@
 import SwiftUI
+import FirebaseAuth
 
 // MARK: - Task List View
 struct TaskListView: View {
@@ -8,6 +9,10 @@ struct TaskListView: View {
     @EnvironmentObject var epicViewModel: EpicViewModel
     @State private var showAddTask = false
     @State private var editingTask: Task?
+    
+    private var currentUserId: String? {
+        Auth.auth().currentUser?.uid
+    }
     
     var body: some View {
         NavigationView {
@@ -91,7 +96,7 @@ struct TaskListView: View {
                                         }
                                     }
                                 },
-                                onEdit: task.senderId == nil ? { editingTask = task } : nil
+                                onEdit: canEdit(task) ? { editingTask = task } : nil
                             )
                             .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
                             .listRowSeparator(.hidden)
@@ -131,9 +136,9 @@ struct TaskListView: View {
                 .padding(.bottom, 24)
             }
             .sheet(isPresented: $showAddTask) {
-                AddTaskView(isPresented: $showAddTask)
+                CreateAssignmentView(isPresented: $showAddTask)
                     .environmentObject(taskViewModel)
-                    .environmentObject(activityViewModel)
+                    .environmentObject(giftViewModel)
             }
             .sheet(item: $editingTask) { task in
                 AddTaskView(
@@ -154,6 +159,17 @@ struct TaskListView: View {
                 CelebrationModal(message: "おめでとう🎉", subtitle: gift.title)
             }
         }
+    }
+}
+
+private extension TaskListView {
+    func canEdit(_ task: Task) -> Bool {
+        guard let uid = currentUserId else { return false }
+        if let createdByUserId = task.createdByUserId {
+            return createdByUserId == uid
+        }
+        // 旧データ互換: 送信タスクでなければ自分作成扱い
+        return task.senderId == nil
     }
 }
 // MARK: - Search Bar

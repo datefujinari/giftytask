@@ -1,4 +1,5 @@
 import SwiftUI
+import FirebaseAuth
 
 // MARK: - Gift List View (ギフトBOX)
 struct GiftListView: View {
@@ -9,6 +10,10 @@ struct GiftListView: View {
     @State private var selectedFilter: GiftFilter = .all
     @State private var showAddGift = false
     @State private var editingGift: Gift?
+    
+    private var currentUserId: String? {
+        Auth.auth().currentUser?.uid
+    }
     
     enum GiftFilter: String, CaseIterable {
         case all = "全て"
@@ -59,7 +64,7 @@ struct GiftListView: View {
                             ForEach(filteredGifts) { gift in
                                 GiftCardView(
                                     gift: gift,
-                                    onEdit: { editingGift = gift },
+                                    onEdit: canEdit(gift) ? { editingGift = gift } : nil,
                                     onUse: { giftViewModel.useGift($0) }
                                 )
                                 .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
@@ -91,19 +96,17 @@ struct GiftListView: View {
                 }
                 
                 // FAB: ギフト新規追加（オレンジ系でタスクの＋と区別）
-                AddTaskFAB(tint: .orange) {
+                AddTaskFAB(action: {
                     HapticManager.shared.mediumImpact()
                     showAddGift = true
-                }
+                }, tint: .orange)
                 .padding(.trailing, 24)
                 .padding(.bottom, 24)
             }
             .sheet(isPresented: $showAddGift) {
-                AddGiftView(isPresented: $showAddGift)
-                    .environmentObject(giftViewModel)
+                CreateAssignmentView(isPresented: $showAddGift)
                     .environmentObject(taskViewModel)
-                    .environmentObject(activityViewModel)
-                    .environmentObject(epicViewModel)
+                    .environmentObject(giftViewModel)
             }
             .sheet(item: $editingGift, onDismiss: { editingGift = nil }) { gift in
                 AddGiftView(isPresented: .constant(true), editingGift: gift)
@@ -122,6 +125,16 @@ struct GiftListView: View {
                 )
             }
         }
+    }
+}
+
+private extension GiftListView {
+    func canEdit(_ gift: Gift) -> Bool {
+        guard let uid = currentUserId else { return false }
+        if let createdByUserId = gift.createdByUserId {
+            return createdByUserId == uid
+        }
+        return gift.type == .selfReward
     }
 }
 

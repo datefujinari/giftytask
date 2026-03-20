@@ -18,6 +18,10 @@ struct FirestoreTaskDTO: Codable, Identifiable {
     var senderEmoji: String?
     var senderTotalCompletedCount: Int
     var completionImageURL: String?
+    var dueDate: Date?
+    var giftDescription: String?
+    var createdByUserId: String?
+    var createdByUserName: String?
     
     enum CodingKeys: String, CodingKey {
         case id
@@ -34,6 +38,10 @@ struct FirestoreTaskDTO: Codable, Identifiable {
         case senderEmoji = "sender_emoji"
         case senderTotalCompletedCount = "sender_total_completed_count"
         case completionImageURL = "completion_image_url"
+        case dueDate = "due_date"
+        case giftDescription = "gift_description"
+        case createdByUserId = "created_by_uid"
+        case createdByUserName = "created_by_name"
     }
     
     init?(data: [String: Any]) {
@@ -61,6 +69,14 @@ struct FirestoreTaskDTO: Codable, Identifiable {
         self.senderEmoji = data["sender_emoji"] as? String
         self.senderTotalCompletedCount = (data["sender_total_completed_count"] as? Int) ?? 0
         self.completionImageURL = data["completion_image_url"] as? String
+        if let dueTS = data["due_date"] as? Timestamp {
+            self.dueDate = dueTS.dateValue()
+        } else {
+            self.dueDate = nil
+        }
+        self.giftDescription = data["gift_description"] as? String
+        self.createdByUserId = data["created_by_uid"] as? String
+        self.createdByUserName = data["created_by_name"] as? String
     }
     
     /// 復活対象か（status==completed かつ 未達 かつ 最終完了が今日でない）
@@ -90,7 +106,14 @@ final class TaskRepository: ObservableObject {
     ///   - receiverId: 送信先ユーザーUID
     ///   - targetDays: 目標日数（1〜30、未指定は1で単発）
     /// - Returns: 作成されたタスクIDとギフトID
-    func sendTask(title: String, giftName: String, receiverId: String, targetDays: Int = 1) async throws -> (taskId: String, giftId: String) {
+    func sendTask(
+        title: String,
+        giftName: String,
+        receiverId: String,
+        targetDays: Int = 1,
+        dueDate: Date? = nil,
+        giftDescription: String? = nil
+    ) async throws -> (taskId: String, giftId: String) {
         guard let senderId = Auth.auth().currentUser?.uid else {
             throw TaskRepositoryError.notAuthenticated
         }
@@ -108,31 +131,53 @@ final class TaskRepository: ObservableObject {
         let taskId = UUID().uuidString
         let giftId = UUID().uuidString
         
-        let giftData: [String: Any] = [
-            "id": giftId,
-            "name": giftName.trimmingCharacters(in: .whitespacesAndNewlines),
-            "is_unlocked": false,
-            "associated_task_id": taskId
-        ]
-        
         let profile = AuthManager.shared.userProfile
         let senderName = profile?.displayName ?? "ユーザー"
         let senderEmoji = profile?.avatarEmoji ?? "👤"
         let senderTotal = profile?.totalCompletedCount ?? 0
+        let trimmedGiftDescription = giftDescription
+            .map { String($0.trimmingCharacters(in: .whitespacesAndNewlines).prefix(40)) }
+        let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedGiftName = giftName.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        var giftData: [String: Any] = [
+            "id": giftId,
+            "name": trimmedGiftName,
+            "is_unlocked": false,
+            "associated_task_id": taskId,
+            "created_by_uid": senderId,
+            "created_by_name": senderName,
+            "task_title": trimmedTitle
+        ]
+        if let trimmedGiftDescription, !trimmedGiftDescription.isEmpty {
+            giftData["description"] = trimmedGiftDescription
+        }
+        if let dueDate {
+            giftData["task_due_date"] = Timestamp(date: dueDate)
+        }
+
         var taskData: [String: Any] = [
             "id": taskId,
-            "title": title.trimmingCharacters(in: .whitespacesAndNewlines),
+            "title": trimmedTitle,
             "sender_id": senderId,
             "receiver_id": receiverId,
             "status": "pending",
             "reward_id": giftId,
-            "gift_name": giftName.trimmingCharacters(in: .whitespacesAndNewlines),
+            "gift_name": trimmedGiftName,
             "target_days": days,
             "current_count": 0,
             "sender_name": senderName,
             "sender_emoji": senderEmoji,
-            "sender_total_completed_count": senderTotal
+            "sender_total_completed_count": senderTotal,
+            "created_by_uid": senderId,
+            "created_by_name": senderName
         ]
+        if let dueDate {
+            taskData["due_date"] = Timestamp(date: dueDate)
+        }
+        if let trimmedGiftDescription, !trimmedGiftDescription.isEmpty {
+            taskData["gift_description"] = trimmedGiftDescription
+        }
         
         let giftRef = db.collection(giftsCollection).document(giftId)
         let taskRef = db.collection(tasksCollection).document(taskId)

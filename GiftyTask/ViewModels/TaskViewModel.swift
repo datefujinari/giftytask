@@ -238,6 +238,8 @@ class TaskViewModel: ObservableObject {
         rewardDisplayName: String? = nil,
         isRoutine: Bool = false
     ) -> Task {
+        let currentUserId = Auth.auth().currentUser?.uid
+        let creatorName = AuthManager.shared.userProfile?.displayName
         let newTask = Task(
             title: title,
             description: description,
@@ -248,7 +250,9 @@ class TaskViewModel: ObservableObject {
             dueDate: dueDate,
             xpReward: xpReward,
             rewardDisplayName: rewardDisplayName,
-            isRoutine: isRoutine
+            isRoutine: isRoutine,
+            createdByUserId: currentUserId,
+            createdByUserName: creatorName
         )
             tasks.append(newTask)
             saveData()
@@ -486,6 +490,7 @@ class TaskViewModel: ObservableObject {
             id: dto.id,
             title: dto.title,
             status: .inProgress,
+            dueDate: dto.dueDate,
             rewardDisplayName: giftName,
             senderId: dto.senderId,
             rewardId: dto.rewardId,
@@ -494,7 +499,9 @@ class TaskViewModel: ObservableObject {
             lastCompletedDate: dto.lastCompletedDate,
             senderName: dto.senderName,
             senderEmoji: dto.senderEmoji,
-            senderTotalCompletedCount: dto.senderTotalCompletedCount
+            senderTotalCompletedCount: dto.senderTotalCompletedCount,
+            createdByUserId: dto.createdByUserId ?? dto.senderId,
+            createdByUserName: dto.createdByUserName ?? dto.senderName
         )
         if !tasks.contains(where: { $0.id == newTask.id }) {
             tasks.append(newTask)
@@ -505,6 +512,7 @@ class TaskViewModel: ObservableObject {
         let newGift = Gift(
             id: dto.rewardId,
             title: giftName,
+            description: dto.giftDescription,
             status: .locked,
             type: .friendAssigned,
             unlockCondition: condition,
@@ -512,6 +520,10 @@ class TaskViewModel: ObservableObject {
             assignedFromUserId: dto.senderId,
             assignedFromUserName: dto.senderName,
             assignedFromUserEmoji: dto.senderEmoji,
+            createdByUserId: dto.createdByUserId ?? dto.senderId,
+            createdByUserName: dto.createdByUserName ?? dto.senderName,
+            linkedTaskTitle: dto.title,
+            linkedTaskDueDate: dto.dueDate,
             price: 0,
             currency: "JPY"
         )

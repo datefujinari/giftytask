@@ -46,7 +46,9 @@ struct TaskCardView: View {
                 completeTask(with: photo)
             }
         }
-        .onChange(of: selectedPhotoItem, perform: handleSelectedPhotoItem)
+        .onChange(of: selectedPhotoItem) { _, newValue in
+            handleSelectedPhotoItem(newValue)
+        }
         .confirmationDialog("完了報告に画像を添付", isPresented: $showPhotoSourceDialog, titleVisibility: .visible) {
             Button("カメラで撮影") { showCamera = true }
             Button("フォトライブラリから選択") { showPhotoPicker = true }
@@ -59,10 +61,17 @@ struct TaskCardView: View {
     // MARK: - Header View
     private var headerView: some View {
         HStack {
-            Text(task.title)
-                .font(.system(size: 18, weight: .bold))
-                .foregroundColor(.primary)
-                .lineLimit(2)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(task.title)
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundColor(.primary)
+                    .lineLimit(2)
+                if let giftName = task.rewardDisplayName, !giftName.isEmpty {
+                    Label(giftName, systemImage: "gift.fill")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(.secondary)
+                }
+            }
             
             Spacer()
             
@@ -97,24 +106,23 @@ struct TaskCardView: View {
         HStack(spacing: 16) {
             dueDateLabel
             verificationModeLabel
+            priorityLabel
             Spacer()
-            fromLabel
+            creatorLabel
         }
     }
     
     // MARK: - Due Date Label
     @ViewBuilder
     private var dueDateLabel: some View {
-        if let dueDate = task.dueDate {  // viewModel.taskからtaskに変更
-            Label {
-                Text(dueDate, style: .date)
-                    .font(.system(size: 12))
-            } icon: {
-                Image(systemName: "calendar")
-                    .font(.system(size: 12))
-            }
-            .foregroundColor(.secondary)
+        Label {
+            Text(task.dueDate.map { Self.displayDateFormatter.string(from: $0) } ?? "期限なし")
+                .font(.system(size: 12))
+        } icon: {
+            Image(systemName: "calendar")
+                .font(.system(size: 12))
         }
+        .foregroundColor(.secondary)
     }
     
     // MARK: - Verification Mode Label
@@ -129,25 +137,32 @@ struct TaskCardView: View {
         .foregroundColor(.secondary)
     }
     
-    // MARK: - From Label（送り主表示）
+    private var priorityLabel: some View {
+        Label {
+            Text(task.priority.displayName)
+                .font(.system(size: 12))
+        } icon: {
+            Circle()
+                .fill(priorityColor(task.priority))
+                .frame(width: 8, height: 8)
+        }
+        .foregroundColor(.secondary)
+    }
+    
+    // MARK: - Creator Label
     @ViewBuilder
-    private var fromLabel: some View {
-        let name = task.senderName ?? task.fromDisplayName ?? "匿名ユーザー"
-        if task.senderId != nil || task.fromDisplayName != nil || task.senderName != nil {
+    private var creatorLabel: some View {
+        let name = task.createdByUserName ?? task.senderName ?? task.fromDisplayName ?? (task.senderId == nil ? "自分" : "匿名ユーザー")
+        if !name.isEmpty {
             HStack(spacing: 4) {
+                Text("作成者")
+                    .font(.system(size: 10))
+                    .foregroundColor(.secondary)
                 Text(name)
                     .font(.system(size: 12))
                     .foregroundColor(.secondary)
                     .lineLimit(1)
                     .truncationMode(.middle)
-                if task.senderTotalCompletedCount > 0 {
-                    Text("•")
-                        .font(.system(size: 10))
-                        .foregroundColor(.secondary)
-                    Text("\(task.senderTotalCompletedCount)達成")
-                        .font(.system(size: 11))
-                        .foregroundColor(.accentColor)
-                }
             }
         }
     }
@@ -267,6 +282,13 @@ struct TaskCardView: View {
         // ここでは直接onCompleteを呼び出す
         onComplete(task, photo)
     }
+
+    private static let displayDateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "ja_JP")
+        formatter.dateFormat = "yyyy:MM:dd"
+        return formatter
+    }()
 }
 
 // TaskCardViewModelは削除

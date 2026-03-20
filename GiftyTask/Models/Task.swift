@@ -9,6 +9,7 @@ struct Task: Identifiable, Codable, Hashable {
         case targetDays, currentCount, lastCompletedDate
         case senderName, senderEmoji, senderTotalCompletedCount
         case completionImageURL
+        case createdByUserId, createdByUserName
     }
     
     init(from decoder: Decoder) throws {
@@ -38,6 +39,8 @@ struct Task: Identifiable, Codable, Hashable {
         senderEmoji = try c.decodeIfPresent(String.self, forKey: .senderEmoji)
         senderTotalCompletedCount = try c.decodeIfPresent(Int.self, forKey: .senderTotalCompletedCount) ?? 0
         completionImageURL = try c.decodeIfPresent(String.self, forKey: .completionImageURL)
+        createdByUserId = try c.decodeIfPresent(String.self, forKey: .createdByUserId)
+        createdByUserName = try c.decodeIfPresent(String.self, forKey: .createdByUserName)
     }
     
     func encode(to encoder: Encoder) throws {
@@ -67,6 +70,8 @@ struct Task: Identifiable, Codable, Hashable {
         try c.encodeIfPresent(senderEmoji, forKey: .senderEmoji)
         try c.encode(senderTotalCompletedCount, forKey: .senderTotalCompletedCount)
         try c.encodeIfPresent(completionImageURL, forKey: .completionImageURL)
+        try c.encodeIfPresent(createdByUserId, forKey: .createdByUserId)
+        try c.encodeIfPresent(createdByUserName, forKey: .createdByUserName)
     }
     
     let id: String
@@ -90,6 +95,8 @@ struct Task: Identifiable, Codable, Hashable {
     var senderEmoji: String? // 送り主の絵文字アイコン
     var senderTotalCompletedCount: Int // 送り主の累計達成数（0=非届きタスク）
     var completionImageURL: String? // 完了報告画像（Firebase Storage URL）
+    var createdByUserId: String? // 作成者UID
+    var createdByUserName: String? // 作成者表示名
     var rewardId: String? // 届いたタスクの場合の紐づくギフトID（完了時にFirestore更新用）
     var targetDays: Int // 目標達成に必要な合計日数（累計達成型、デフォルト1で単発）
     var currentCount: Int // これまでに完了した累計日数
@@ -121,7 +128,9 @@ struct Task: Identifiable, Codable, Hashable {
         senderName: String? = nil,
         senderEmoji: String? = nil,
         senderTotalCompletedCount: Int = 0,
-        completionImageURL: String? = nil
+        completionImageURL: String? = nil,
+        createdByUserId: String? = nil,
+        createdByUserName: String? = nil
     ) {
         self.id = id
         self.title = title
@@ -148,6 +157,8 @@ struct Task: Identifiable, Codable, Hashable {
         self.senderEmoji = senderEmoji
         self.senderTotalCompletedCount = senderTotalCompletedCount
         self.completionImageURL = completionImageURL
+        self.createdByUserId = createdByUserId
+        self.createdByUserName = createdByUserName
     }
     
     /// 目標日数制かどうか（1より大きい場合）

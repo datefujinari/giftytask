@@ -2,6 +2,7 @@ import SwiftUI
 
 // MARK: - Gift Card View (Glassmorphism + Locked/Unlocked)
 struct GiftCardView: View {
+    @EnvironmentObject var taskViewModel: TaskViewModel
     var gift: Gift
     var onUnlock: (() -> Void)? = nil
     var onEdit: (() -> Void)? = nil
@@ -74,8 +75,9 @@ struct GiftCardView: View {
     private var cardContent: some View {
         VStack(alignment: .leading, spacing: 16) {
             headerView
+            infoRow
             if let description = gift.description, !description.isEmpty {
-                Text(description)
+                Text(String(description.prefix(40)))
                     .font(.system(size: 14))
                     .foregroundColor(gift.status == .locked ? .white.opacity(0.6) : .secondary)
                     .lineLimit(2)
@@ -113,6 +115,27 @@ struct GiftCardView: View {
             }
         }
     }
+
+    private var infoRow: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            if let taskTitle = linkedTaskTitle, !taskTitle.isEmpty {
+                Label("タスク: \(taskTitle)", systemImage: "checklist")
+                    .font(.system(size: 12))
+                    .foregroundColor(gift.status == .locked ? .white.opacity(0.7) : .secondary)
+            }
+            if let due = linkedTaskDueDate {
+                Label("期限: \(Self.displayDateFormatter.string(from: due))", systemImage: "calendar")
+                    .font(.system(size: 12))
+                    .foregroundColor(gift.status == .locked ? .white.opacity(0.7) : .secondary)
+            }
+            let creator = gift.createdByUserName ?? gift.assignedFromUserName
+            if let creator, !creator.isEmpty {
+                Text("作成者: \(creator)")
+                    .font(.system(size: 12))
+                    .foregroundColor(gift.status == .locked ? .white.opacity(0.7) : .secondary)
+            }
+        }
+    }
     
     @ViewBuilder
     private var footerView: some View {
@@ -127,14 +150,7 @@ struct GiftCardView: View {
                         .foregroundColor(gift.status == .locked ? .white.opacity(0.5) : .secondary)
                 }
                 Spacer()
-                if gift.assignedFromUserId != nil || gift.assignedFromUserName != nil {
-                    let displayName = gift.assignedFromUserName ?? gift.assignedFromUserId ?? "匿名ユーザー"
-                    Text("From: \(displayName)")
-                            .font(.system(size: 12))
-                            .foregroundColor(gift.status == .locked ? .white.opacity(0.6) : .secondary)
-                            .lineLimit(1)
-                            .truncationMode(.middle)
-                }
+                
             }
             footerButtons
         }
@@ -147,11 +163,11 @@ struct GiftCardView: View {
             if gift.status == .unlocked {
                 if let urlString = gift.effectiveRewardUrl, !urlString.isEmpty, let url = URL(string: urlString) {
                     Link(destination: url) {
-                        actionButtonContent(text: "確認する", icon: "arrow.right.circle.fill")
+                        actionButtonContent(text: "見る", icon: "arrow.right.circle.fill")
                     }
                     .frame(width: 100, height: 44)
                     Button { onReceiveTapped() } label: {
-                        actionButtonContent(text: "受け取る", icon: "checkmark.circle.fill", isGreen: true)
+                        actionButtonContent(text: "使う", icon: "checkmark.circle.fill", isGreen: true)
                     }
                     .buttonStyle(.plain)
                     .frame(width: 100, height: 44)
@@ -171,7 +187,7 @@ struct GiftCardView: View {
                 HStack(spacing: 8) {
                     Image(systemName: "lock.fill")
                         .font(.system(size: 14))
-                    Text("ロック済み")
+                    Text("ロック中")
                         .font(.system(size: 14, weight: .medium))
                 }
                 .foregroundColor(.white.opacity(0.7))
@@ -215,6 +231,29 @@ struct GiftCardView: View {
     private func performReceiveAction() {
         onUse?(gift)
     }
+
+    private var linkedTaskTitle: String? {
+        if let linked = gift.linkedTaskTitle, !linked.isEmpty {
+            return linked
+        }
+        guard let taskId = gift.taskId else { return nil }
+        return taskViewModel.getTask(by: taskId)?.title
+    }
+
+    private var linkedTaskDueDate: Date? {
+        if let linked = gift.linkedTaskDueDate {
+            return linked
+        }
+        guard let taskId = gift.taskId else { return nil }
+        return taskViewModel.getTask(by: taskId)?.dueDate
+    }
+
+    private static let displayDateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "ja_JP")
+        formatter.dateFormat = "yyyy:MM:dd"
+        return formatter
+    }()
     
     @ViewBuilder
     private var unlockingOverlay: some View {
@@ -379,6 +418,7 @@ struct CelebrationModal: View {
         }
         .padding()
     }
+    .environmentObject(TaskViewModel())
     .background(
         LinearGradient(
             colors: [Color.blue.opacity(0.3), Color.purple.opacity(0.3)],

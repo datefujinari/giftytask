@@ -1,4 +1,5 @@
 import SwiftUI
+import FirebaseAuth
 
 // MARK: - Dashboard View
 struct DashboardView: View {
@@ -10,6 +11,10 @@ struct DashboardView: View {
     @State private var editingTask: Task?
     @State private var heatmapTheme = HeatmapTheme()
     @State private var showResetConfirm = false
+    
+    private var currentUserId: String? {
+        Auth.auth().currentUser?.uid
+    }
     
     var body: some View {
         NavigationView {
@@ -32,9 +37,9 @@ struct DashboardView: View {
                 .padding(.bottom, 24)
             }
             .sheet(isPresented: $showAddTask) {
-                AddTaskView(isPresented: $showAddTask)
+                CreateAssignmentView(isPresented: $showAddTask)
                     .environmentObject(taskViewModel)
-                    .environmentObject(activityViewModel)
+                    .environmentObject(giftViewModel)
             }
             .sheet(item: $editingTask) { task in
                 AddTaskView(
@@ -170,7 +175,7 @@ struct DashboardView: View {
                     }
                 }
             },
-            onEdit: task.senderId == nil ? { editingTask = task } : nil
+            onEdit: canEdit(task) ? { editingTask = task } : nil
         )
         .frame(width: 320)
     }
@@ -232,6 +237,16 @@ struct DashboardView: View {
         return totalProgress / Double(epics.count)
     }
     
+}
+
+private extension DashboardView {
+    func canEdit(_ task: Task) -> Bool {
+        guard let uid = currentUserId else { return false }
+        if let createdByUserId = task.createdByUserId {
+            return createdByUserId == uid
+        }
+        return task.senderId == nil
+    }
 }
 
 

@@ -4,7 +4,7 @@ import SwiftUI
 struct ReceivedBoxView: View {
     @EnvironmentObject var taskViewModel: TaskViewModel
     @EnvironmentObject var giftViewModel: GiftViewModel
-    @State private var showSendTask = false
+    @State private var showCreateAssignment = false
     @State private var showApprovalPending = false
     @State private var acceptingTaskId: String?
     
@@ -93,7 +93,7 @@ struct ReceivedBoxView: View {
                 // FAB: タスク送信
                 Button {
                     HapticManager.shared.mediumImpact()
-                    showSendTask = true
+                    showCreateAssignment = true
                 } label: {
                     Image(systemName: "paperplane.fill")
                         .font(.system(size: 22))
@@ -112,8 +112,10 @@ struct ReceivedBoxView: View {
                 .padding(.trailing, 24)
                 .padding(.bottom, 24)
             }
-            .sheet(isPresented: $showSendTask) {
-                SendTaskView()
+            .sheet(isPresented: $showCreateAssignment) {
+                CreateAssignmentView(isPresented: $showCreateAssignment)
+                    .environmentObject(taskViewModel)
+                    .environmentObject(giftViewModel)
             }
             .sheet(isPresented: $showApprovalPending) {
                 ApprovalPendingView()
