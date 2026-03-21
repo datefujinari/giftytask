@@ -5,10 +5,12 @@ struct EditRoutineSheet: View {
     @Binding var isPresented: Bool
     let routine: Routine
     @EnvironmentObject var routineViewModel: RoutineViewModel
+    @EnvironmentObject var giftViewModel: GiftViewModel
     
     @State private var title: String
     @State private var description: String
-    @State private var points: Int
+    @State private var rewardGiftTitle: String
+    @State private var targetCount: Int
     @State private var showDeleteConfirm = false
     
     init(isPresented: Binding<Bool>, routine: Routine) {
@@ -16,7 +18,8 @@ struct EditRoutineSheet: View {
         self.routine = routine
         _title = State(initialValue: routine.title)
         _description = State(initialValue: routine.description ?? "")
-        _points = State(initialValue: routine.points)
+        _targetCount = State(initialValue: max(1, routine.targetCount))
+        _rewardGiftTitle = State(initialValue: "")
     }
     
     private let primaryColor = Color(hex: "#4F46E5")
@@ -35,9 +38,20 @@ struct EditRoutineSheet: View {
                         .frame(minHeight: 80)
                 }
                 
-                Section("ポイント") {
-                    Stepper(value: $points, in: 1...100) {
-                        Text("\(points) pt")
+                Section {
+                    TextField("ご褒美（ギフト名）", text: $rewardGiftTitle)
+                        .textContentType(.none)
+                } header: {
+                    Text("ご褒美（ギフト名）")
+                } footer: {
+                    Text("ギフトBOXに表示される名前です。未設定のルーティンでは名前を入れて保存するとギフトを新規作成して紐付けます。")
+                        .font(.caption)
+                        .foregroundColor(secondaryColor)
+                }
+                
+                Section("目標達成日数") {
+                    Stepper(value: $targetCount, in: 1...100) {
+                        Text("\(targetCount) 日達成でギフト獲得")
                             .font(.body.weight(.medium))
                     }
                 }
@@ -78,9 +92,20 @@ struct EditRoutineSheet: View {
                     deleteRoutine()
                 }
             } message: {
-                Text("このルーティンを削除しますか？この操作は取り消せません。")
+                Text("このルーティンと紐付くご褒美ギフト（未使用）もリストから削除されます。")
+            }
+            .onAppear {
+                syncRewardTitleFromGift()
             }
         }
+    }
+    
+    private func syncRewardTitleFromGift() {
+        guard !routine.associatedGiftId.isEmpty,
+              let g = giftViewModel.gifts.first(where: { $0.id == routine.associatedGiftId }) else {
+            return
+        }
+        rewardGiftTitle = g.title
     }
     
     private var canSave: Bool {
@@ -90,8 +115,31 @@ struct EditRoutineSheet: View {
     private func saveRoutine() {
         var updated = routine
         updated.title = title.trimmingCharacters(in: .whitespacesAndNewlines)
-        updated.description = description.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : description.trimmingCharacters(in: .whitespacesAndNewlines)
-        updated.points = points
+        updated.description = description.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            ? nil
+            : description.trimmingCharacters(in: .whitespacesAndNewlines)
+        updated.targetCount = max(1, targetCount)
+        
+        let rewardTrimmed = rewardGiftTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        if updated.associatedGiftId.isEmpty {
+            if !rewardTrimmed.isEmpty {
+                let gift = giftViewModel.createRoutineRewardGift(
+                    title: rewardTrimmed,
+                    description: nil,
+                    routineId: updated.id,
+                    linkedRoutineTitle: updated.title
+                )
+                updated.associatedGiftId = gift.id
+            }
+        } else if var g = giftViewModel.gifts.first(where: { $0.id == updated.associatedGiftId }) {
+            if !rewardTrimmed.isEmpty {
+                g.title = rewardTrimmed
+            }
+            g.linkedTaskTitle = updated.title
+            giftViewModel.updateGift(g)
+        }
+        
         routineViewModel.updateRoutine(updated)
         HapticManager.shared.successNotification()
         isPresented = false

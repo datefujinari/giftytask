@@ -146,6 +146,8 @@ struct UnlockCondition: Codable, Hashable {
         case taskCompletion = "task_completion"     // 旧: singleTask にマッピング
         case multipleTasksCompletion = "multiple_tasks_completion"
         case streakDays = "streak_days"            // 旧: streak にマッピング
+        /// ルーティン累積達成で解禁（targetIds[0] = Routine.id の UUID 文字列）。タスク完了フローでは評価しない。
+        case routineCycleCompletion = "routine_cycle_completion"
     }
     
     static func displayName(for type: ConditionType) -> String {
@@ -155,6 +157,7 @@ struct UnlockCondition: Codable, Hashable {
         case .multipleTasks, .multipleTasksCompletion: return "複数タスク完了"
         case .streak, .streakDays: return "継続達成"
         case .xpThreshold: return "XP閾値達成時"
+        case .routineCycleCompletion: return "ルーティン達成"
         }
     }
     
@@ -176,6 +179,7 @@ struct UnlockCondition: Codable, Hashable {
         case .multipleTasks, .multipleTasksCompletion: self.targetIds = taskIds ?? []
         case .streak, .streakDays: self.targetIds = [taskId].compactMap { $0 }
         case .xpThreshold: self.targetIds = []
+        case .routineCycleCompletion: self.targetIds = []
         }
     }
 }
@@ -204,6 +208,7 @@ extension UnlockCondition {
             case .multipleTasks, .multipleTasksCompletion: targetIds = taskIds ?? []
             case .streak, .streakDays: targetIds = [taskId].compactMap { $0 }
             case .xpThreshold: targetIds = []
+            case .routineCycleCompletion: targetIds = []
             }
         }
     }

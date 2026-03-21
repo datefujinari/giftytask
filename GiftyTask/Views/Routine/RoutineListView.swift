@@ -3,6 +3,7 @@ import SwiftUI
 // MARK: - Routine List View
 struct RoutineListView: View {
     @EnvironmentObject var routineViewModel: RoutineViewModel
+    @EnvironmentObject var giftViewModel: GiftViewModel
     @State private var showAddRoutine = false
     
     private let primaryColor = Color(hex: "#4F46E5")
@@ -41,6 +42,7 @@ struct RoutineListView: View {
             .sheet(isPresented: $showAddRoutine) {
                 AddRoutineSheet(isPresented: $showAddRoutine)
                     .environmentObject(routineViewModel)
+                    .environmentObject(giftViewModel)
             }
         }
     }
@@ -62,10 +64,20 @@ struct RoutineListView: View {
         .padding()
     }
     
+    private func giftDisplayTitle(for routine: Routine) -> String {
+        guard !routine.associatedGiftId.isEmpty,
+              let g = giftViewModel.gifts.first(where: { $0.id == routine.associatedGiftId }) else {
+            return "ギフト未設定"
+        }
+        return g.title
+    }
+    
     private var routineList: some View {
         List {
             ForEach(routineViewModel.routines.sorted(by: { $0.order < $1.order })) { routine in
-                NavigationLink(destination: RoutineDetailView(routine: routine)) {
+                NavigationLink(destination: RoutineDetailView(routine: routine)
+                    .environmentObject(routineViewModel)
+                    .environmentObject(giftViewModel)) {
                     HStack(spacing: 12) {
                         Image(systemName: routine.isCompletedToday ? "checkmark.circle.fill" : "circle")
                             .font(.system(size: 22))
@@ -81,21 +93,24 @@ struct RoutineListView: View {
                                     .foregroundColor(secondaryColor)
                                     .lineLimit(2)
                             }
+                            HStack(spacing: 6) {
+                                Text("🎁 \(giftDisplayTitle(for: routine))")
+                                    .font(.system(size: 13, weight: .medium))
+                                    .foregroundColor(primaryColor)
+                                    .lineLimit(1)
+                            }
                         }
                         
                         Spacer()
                         
-                        Text("\(routine.points)pt")
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(secondaryColor)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(Color.white.opacity(0.8))
-                            .cornerRadius(8)
-                        
-                        Image(systemName: "chevron.right")
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(secondaryColor.opacity(0.5))
+                        VStack(alignment: .trailing, spacing: 4) {
+                            Text("\(routine.currentCycleCount)/\(max(1, routine.targetCount))日")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundColor(secondaryColor)
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundColor(secondaryColor.opacity(0.5))
+                        }
                     }
                     .padding(.vertical, 8)
                 }

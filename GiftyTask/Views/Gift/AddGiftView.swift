@@ -198,6 +198,11 @@ struct AddGiftView: View {
             routineTaskPicker
         case .xpThreshold:
             EmptyView()
+        case .routineCycleCompletion:
+            Text("ルーティン連携のご褒美です。回数・名前はルーティン編集から変更してください。")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+                .padding(.vertical, 8)
         }
     }
     

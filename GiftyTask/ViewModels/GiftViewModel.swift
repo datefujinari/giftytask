@@ -130,6 +130,9 @@ class GiftViewModel: ObservableObject {
                 if activityViewModel.currentUser.totalXP >= threshold {
                     unlockGiftAtIndex(index, gift: &gift)
                 }
+            case .routineCycleCompletion:
+                // ルーティン累積達成は RoutineViewModel からのみ解禁
+                continue
             }
         }
         
@@ -180,6 +183,59 @@ class GiftViewModel: ObservableObject {
     func deleteGift(_ gift: Gift) {
         gifts.removeAll { $0.id == gift.id }
         saveData()
+    }
+    
+    /// ID でギフトを削除（ルーティン削除時など）
+    func deleteGift(id: String) {
+        gifts.removeAll { $0.id == id }
+        saveData()
+    }
+    
+    /// ルーティン用ギフトを作成（ロック済み・解禁は累積達成で Routine 側から呼ぶ）
+    func createRoutineRewardGift(
+        title: String,
+        description: String? = nil,
+        routineId: UUID,
+        linkedRoutineTitle: String?
+    ) -> Gift {
+        let currentUserId = Auth.auth().currentUser?.uid
+        let creatorName = AuthManager.shared.userProfile?.displayName
+        let condition = UnlockCondition(
+            conditionType: .routineCycleCompletion,
+            targetIds: [routineId.uuidString]
+        )
+        let gift = Gift(
+            title: title,
+            description: description,
+            status: .locked,
+            type: .selfReward,
+            unlockCondition: condition,
+            createdByUserId: currentUserId,
+            createdByUserName: creatorName,
+            linkedTaskTitle: linkedRoutineTitle,
+            price: 0,
+            currency: "JPY"
+        )
+        gifts.append(gift)
+        saveData()
+        return gift
+    }
+    
+    /// 指定IDのギフトがロック中ならローカル解禁（ルーティン達成用）
+    /// - Parameter publishToLastUnlocked: false のときは `lastUnlockedGift` を更新しない（ルーティン画面側でアラートする場合）
+    @discardableResult
+    func unlockGiftIfLocked(id: String, publishToLastUnlocked: Bool = true) -> Gift? {
+        guard let index = gifts.firstIndex(where: { $0.id == id }) else { return nil }
+        var gift = gifts[index]
+        guard gift.status == .locked else { return gift }
+        gift.unlockLocally(rewardURL: gift.rewardUrl)
+        gifts[index] = gift
+        saveData()
+        if publishToLastUnlocked {
+            lastUnlockedGift = gift
+        }
+        HapticManager.shared.giftUnlocked()
+        return gift
     }
     
     /// ギフトを使用（削除し、「ギフトを受け取りました」モーダル用にタイトルを保持）

@@ -14,6 +14,7 @@ struct ContentView: View {
         TabView(selection: $selectedTab) {
             RoutineListView()
                 .environmentObject(routineViewModel)
+                .environmentObject(giftViewModel)
                 .tabItem {
                     Label("ルーティン", systemImage: "repeat.circle")
                 }
@@ -58,6 +59,7 @@ struct ContentView: View {
         .onAppear {
             taskViewModel.giftViewModel = giftViewModel
             taskViewModel.activityViewModel = activityViewModel
+            routineViewModel.giftViewModel = giftViewModel
         }
         .task {
             guard authManager.currentUser == nil, !authManager.isLoading else { return }
