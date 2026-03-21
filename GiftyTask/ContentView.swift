@@ -7,17 +7,15 @@ struct ContentView: View {
     @StateObject private var activityViewModel = ActivityViewModel()
     @StateObject private var giftViewModel = GiftViewModel()
     @StateObject private var epicViewModel = EpicViewModel()
+    @StateObject private var routineViewModel = RoutineViewModel()
     @State private var selectedTab = 0
     
     var body: some View {
         TabView(selection: $selectedTab) {
-            DashboardView()
-                .environmentObject(taskViewModel)
-                .environmentObject(activityViewModel)
-                .environmentObject(giftViewModel)
-                .environmentObject(epicViewModel)
+            RoutineListView()
+                .environmentObject(routineViewModel)
                 .tabItem {
-                    Label("ダッシュボード", systemImage: "house.fill")
+                    Label("ルーティン", systemImage: "repeat.circle")
                 }
                 .tag(0)
             
