@@ -20,6 +20,16 @@ class TaskViewModel: ObservableObject {
     /// 送ったタスク（Firestore）。承認待ち一覧に利用
     @Published var sentTasks: [FirestoreTaskDTO] = []
     
+    // MARK: - 通知用（重複防止・初回スナップショット除外）
+    private var isFirstReceivedTasksSnapshot = true
+    private var isFirstSentTasksSnapshot = true
+    private var lastReceivedFirestoreTaskIds = Set<String>()
+    private var lastReceivedTaskTitles: [String: String] = [:]
+    private var lastSentFirestoreTaskIds = Set<String>()
+    private var lastSentTaskTitles: [String: String] = [:]
+    /// 送信タスクの status 遷移検知（差し戻し後の再報告で再度通知するため）
+    private var lastSentTaskStatusById: [String: String] = [:]
+    
     /// 承認待ちのタスク（送信者用）
     var pendingApprovalTasks: [FirestoreTaskDTO] {
         sentTasks.filter { $0.status == "pending_approval" }
@@ -197,10 +207,14 @@ class TaskViewModel: ObservableObject {
             case "pending_approval": tasks[i].status = .pendingApproval
             case "completed":
                 tasks[i].status = .completed
-                if previousStatus != .completed, let gv = giftViewModel, let av = activityViewModel {
-                    var t = tasks[i]
-                    t.completedDate = Date()
-                    gv.checkAndUnlockGifts(completedTask: t, taskViewModel: self, activityViewModel: av)
+                if previousStatus != .completed {
+                    let giftName = dto.giftName ?? "ギフト"
+                    NotificationService.notifyTaskApprovedGiftUnlocked(taskTitle: dto.title, giftName: giftName)
+                    if let gv = giftViewModel, let av = activityViewModel {
+                        var t = tasks[i]
+                        t.completedDate = Date()
+                        gv.checkAndUnlockGifts(completedTask: t, taskViewModel: self, activityViewModel: av)
+                    }
                 }
             default: break
             }
@@ -350,13 +364,8 @@ class TaskViewModel: ObservableObject {
             if updatedTask.currentCount >= updatedTask.targetDays {
                 updatedTask.completedDate = Date()
             }
-            // 送信者へ通知
-            if let senderProfile = await AuthManager.shared.fetchOtherUserProfile(uid: task.senderId ?? "") {
-                NotificationService.notifyTaskCompletionReported(
-                    senderFCMToken: senderProfile.fcmToken,
-                    receiverDisplayName: AuthManager.shared.userProfile?.displayName ?? "受信者"
-                )
-            }
+            // 受信者の端末: 報告送信の確認（送信者への通知は sentTasks リスナーで検知）
+            NotificationService.notifyCompletionReportSubmitted()
         } else {
             // 自分で作ったタスク: 即時完了
             updatedTask.complete(with: evidenceURL)
@@ -440,8 +449,10 @@ class TaskViewModel: ObservableObject {
         guard let uid = Auth.auth().currentUser?.uid else { return }
         receivedTasksListener = TaskRepository.shared.addReceivedTasksListener(receiverId: uid) { [weak self] tasks in
             _Concurrency.Task { @MainActor in
-                self?.receivedTasks = tasks
-                self?.mergeReceivedTasksIntoLocal(tasks)
+                guard let self else { return }
+                self.handleReceivedTasksSnapshot(tasks)
+                self.receivedTasks = tasks
+                self.mergeReceivedTasksIntoLocal(tasks)
                 for dto in tasks where dto.needsRevival() {
                     try? await TaskRepository.shared.reviveTask(taskId: dto.id)
                 }
@@ -453,10 +464,16 @@ class TaskViewModel: ObservableObject {
     func startListeningSentTasks() {
         sentTasksListener?.remove()
         sentTasksListener = nil
+        isFirstSentTasksSnapshot = true
+        lastSentFirestoreTaskIds.removeAll()
+        lastSentTaskTitles.removeAll()
+        lastSentTaskStatusById.removeAll()
         guard let uid = Auth.auth().currentUser?.uid else { return }
         sentTasksListener = TaskRepository.shared.addSentTasksListener(senderId: uid) { [weak self] tasks in
             _Concurrency.Task { @MainActor in
-                self?.sentTasks = tasks
+                guard let self else { return }
+                await self.handleSentTasksSnapshot(tasks)
+                self.sentTasks = tasks
             }
         }
     }
@@ -466,6 +483,9 @@ class TaskViewModel: ObservableObject {
         receivedTasksListener?.remove()
         receivedTasksListener = nil
         receivedTasks = []
+        isFirstReceivedTasksSnapshot = true
+        lastReceivedFirestoreTaskIds.removeAll()
+        lastReceivedTaskTitles.removeAll()
     }
     
     /// 送ったタスクのリスナーを解除
@@ -473,6 +493,10 @@ class TaskViewModel: ObservableObject {
         sentTasksListener?.remove()
         sentTasksListener = nil
         sentTasks = []
+        isFirstSentTasksSnapshot = true
+        lastSentFirestoreTaskIds.removeAll()
+        lastSentTaskTitles.removeAll()
+        lastSentTaskStatusById.removeAll()
     }
     
     /// 届いたタスクのうち status が "pending" のもの（受信BOX用）
@@ -560,6 +584,71 @@ class TaskViewModel: ObservableObject {
     /// タスクをリロード
     func refreshTasks() async {
         await loadTasks()
+    }
+    
+    // MARK: - 通知（Firestore スナップショット）
+    
+    /// 受信タスク一覧の変化: 新着 pending / 削除を検知してローカル通知
+    private func handleReceivedTasksSnapshot(_ tasks: [FirestoreTaskDTO]) {
+        let currentIds = Set(tasks.map(\.id))
+        let titles = Dictionary(uniqueKeysWithValues: tasks.map { ($0.id, $0.title) })
+        
+        if isFirstReceivedTasksSnapshot {
+            isFirstReceivedTasksSnapshot = false
+            lastReceivedFirestoreTaskIds = currentIds
+            lastReceivedTaskTitles = titles
+            return
+        }
+        
+        let removedIds = lastReceivedFirestoreTaskIds.subtracting(currentIds)
+        for id in removedIds {
+            let title = lastReceivedTaskTitles[id] ?? "タスク"
+            NotificationService.notifyReceivedTaskRemoved(taskTitle: title)
+        }
+        
+        for dto in tasks where dto.status == "pending" {
+            if !lastReceivedFirestoreTaskIds.contains(dto.id) {
+                NotificationService.notifyIncomingTask(
+                    senderName: dto.senderName ?? "ユーザー",
+                    taskTitle: dto.title
+                )
+            }
+        }
+        
+        lastReceivedFirestoreTaskIds = currentIds
+        lastReceivedTaskTitles = titles
+    }
+    
+    /// 送信タスク一覧の変化: 承認申請（pending_approval へ遷移）/ 削除を検知
+    private func handleSentTasksSnapshot(_ tasks: [FirestoreTaskDTO]) async {
+        let currentIds = Set(tasks.map(\.id))
+        let titles = Dictionary(uniqueKeysWithValues: tasks.map { ($0.id, $0.title) })
+        
+        if isFirstSentTasksSnapshot {
+            isFirstSentTasksSnapshot = false
+            lastSentTaskStatusById = Dictionary(uniqueKeysWithValues: tasks.map { ($0.id, $0.status) })
+            lastSentFirestoreTaskIds = currentIds
+            lastSentTaskTitles = titles
+            return
+        }
+        
+        let removedIds = lastSentFirestoreTaskIds.subtracting(currentIds)
+        for id in removedIds {
+            let title = lastSentTaskTitles[id] ?? "タスク"
+            NotificationService.notifySentTaskRemovedAsCreator(taskTitle: title)
+        }
+        
+        for dto in tasks {
+            let prev = lastSentTaskStatusById[dto.id]
+            if dto.status == "pending_approval", prev != "pending_approval" {
+                let name = await AuthManager.shared.fetchOtherUserProfile(uid: dto.receiverId)?.displayName ?? "相手"
+                NotificationService.notifyCompletionReportReceived(receiverName: name, taskTitle: dto.title)
+            }
+        }
+        
+        lastSentTaskStatusById = Dictionary(uniqueKeysWithValues: tasks.map { ($0.id, $0.status) })
+        lastSentFirestoreTaskIds = currentIds
+        lastSentTaskTitles = titles
     }
 }
 

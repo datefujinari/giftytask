@@ -87,6 +87,46 @@ struct FirestoreTaskDTO: Codable, Identifiable {
     }
 }
 
+// MARK: - Firestore ルーティン提案 DTO（routine_suggestions コレクション）
+struct FirestoreRoutineSuggestionDTO: Codable, Identifiable {
+    let id: String
+    var title: String
+    var description: String?
+    var targetCount: Int
+    var associatedGiftName: String
+    var senderId: String
+    var receiverId: String
+    var status: String
+    var senderName: String?
+    var createdAt: Date?
+    
+    init?(data: [String: Any]) {
+        guard let id = data["id"] as? String,
+              let title = data["title"] as? String,
+              let targetCount = data["target_count"] as? Int,
+              let associatedGiftName = data["associated_gift_name"] as? String,
+              let senderId = data["sender_id"] as? String,
+              let receiverId = data["receiver_id"] as? String,
+              let status = data["status"] as? String else {
+            return nil
+        }
+        self.id = id
+        self.title = title
+        self.description = data["description"] as? String
+        self.targetCount = targetCount
+        self.associatedGiftName = associatedGiftName
+        self.senderId = senderId
+        self.receiverId = receiverId
+        self.status = status
+        self.senderName = data["sender_name"] as? String
+        if let ts = data["created_at"] as? Timestamp {
+            self.createdAt = ts.dateValue()
+        } else {
+            self.createdAt = nil
+        }
+    }
+}
+
 // MARK: - Task Repository
 /// Firestore の tasks コレクションへの送信・取得
 @MainActor
@@ -96,6 +136,7 @@ final class TaskRepository: ObservableObject {
     private let db = Firestore.firestore()
     private let tasksCollection = "tasks"
     private let giftsCollection = "gifts"
+    private let routineSuggestionsCollection = "routine_suggestions"
     
     private init() {}
     
@@ -204,6 +245,59 @@ final class TaskRepository: ObservableObject {
         return (taskId, giftId)
     }
     
+    /// ルーティン提案を他ユーザーへ送信する（routine_suggestions に status=pending で保存）
+    func sendRoutineSuggestion(
+        title: String,
+        description: String?,
+        targetCount: Int,
+        associatedGiftName: String,
+        receiverId: String
+    ) async throws -> String {
+        guard let senderId = Auth.auth().currentUser?.uid else {
+            throw TaskRepositoryError.notAuthenticated
+        }
+        let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedGiftName = associatedGiftName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedReceiver = receiverId.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedDescription = description?.trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        guard !trimmedTitle.isEmpty else {
+            throw TaskRepositoryError.emptyTitle
+        }
+        guard !trimmedGiftName.isEmpty else {
+            throw TaskRepositoryError.emptyGiftName
+        }
+        guard !trimmedReceiver.isEmpty else {
+            throw TaskRepositoryError.emptyReceiverId
+        }
+        
+        let id = UUID().uuidString
+        let senderName = AuthManager.shared.userProfile?.displayName ?? "ユーザー"
+        let data: [String: Any] = [
+            "id": id,
+            "title": trimmedTitle,
+            "description": (trimmedDescription?.isEmpty == false ? trimmedDescription! : NSNull()),
+            "target_count": max(1, targetCount),
+            "associated_gift_name": trimmedGiftName,
+            "sender_id": senderId,
+            "receiver_id": trimmedReceiver,
+            "sender_name": senderName,
+            "status": "pending",
+            "created_at": Timestamp(date: Date())
+        ]
+        
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            db.collection(routineSuggestionsCollection).document(id).setData(data) { error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                } else {
+                    continuation.resume()
+                }
+            }
+        }
+        return id
+    }
+    
     /// sender_id が指定UIDと一致するタスクをリアルタイム購読（送信したタスク・承認待ち一覧用）
     func addSentTasksListener(
         senderId: String,
@@ -254,6 +348,30 @@ final class TaskRepository: ObservableObject {
                 FirestoreTaskDTO(data: doc.data())
             }
             DispatchQueue.main.async { onUpdate(tasks) }
+        }
+    }
+    
+    /// receiver_id が指定UIDのルーティン提案をリアルタイム購読する（受信BOX用）
+    func addReceivedRoutineSuggestionsListener(
+        receiverId: String,
+        onUpdate: @escaping ([FirestoreRoutineSuggestionDTO]) -> Void
+    ) -> ListenerRegistration {
+        let query = db.collection(routineSuggestionsCollection)
+            .whereField("receiver_id", isEqualTo: receiverId)
+            .whereField("status", isEqualTo: "pending")
+        
+        return query.addSnapshotListener { snapshot, error in
+            if let error = error {
+                print("TaskRepository addReceivedRoutineSuggestionsListener error: \(error.localizedDescription)")
+                DispatchQueue.main.async { onUpdate([]) }
+                return
+            }
+            guard let documents = snapshot?.documents else {
+                DispatchQueue.main.async { onUpdate([]) }
+                return
+            }
+            let items = documents.compactMap { FirestoreRoutineSuggestionDTO(data: $0.data()) }
+            DispatchQueue.main.async { onUpdate(items) }
         }
     }
     
@@ -387,6 +505,23 @@ final class TaskRepository: ObservableObject {
         let taskRef = db.collection(tasksCollection).document(taskId)
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             taskRef.updateData(["status": "active"]) { error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                } else {
+                    continuation.resume()
+                }
+            }
+        }
+    }
+    
+    /// ルーティン提案を受け入れ済みに更新する
+    func acceptRoutineSuggestion(suggestionId: String) async throws {
+        guard Auth.auth().currentUser != nil else {
+            throw TaskRepositoryError.notAuthenticated
+        }
+        let ref = db.collection(routineSuggestionsCollection).document(suggestionId)
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            ref.updateData(["status": "accepted"]) { error in
                 if let error = error {
                     continuation.resume(throwing: error)
                 } else {

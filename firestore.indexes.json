@@ -1,0 +1,13 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "routine_suggestions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "receiver_id", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

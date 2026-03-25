@@ -241,6 +241,7 @@ class GiftViewModel: ObservableObject {
     /// ギフトを使用（削除し、「ギフトを受け取りました」モーダル用にタイトルを保持）
     func useGift(_ gift: Gift) {
         lastUsedGiftTitle = gift.title
+        NotificationService.notifyGiftRedeemedLocally(giftTitle: gift.title)
         deleteGift(gift)
     }
     

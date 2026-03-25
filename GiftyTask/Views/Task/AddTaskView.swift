@@ -1,14 +1,16 @@
 import SwiftUI
 
-// MARK: - Due Date Quick Option（今日/明日/今週/毎日/なし）
+// MARK: - Due Date Quick Option（今日/明日/今週/毎日/なし/日付指定）
 enum DueDateQuickOption: String, CaseIterable {
     case today = "今日やる"
     case tomorrow = "明日やる"
     case thisWeek = "今週中"
     case daily = "毎日"
     case none = "期限なし"
+    /// カードの「期限」がクイック候補に当てはまらないとき（編集時に実日付を保持）
+    case pickDate = "日付を指定"
     
-    func dueDate(calendar: Calendar = .current) -> Date? {
+    func dueDate(calendar: Calendar = .current, pickedDate: Date = Date()) -> Date? {
         let now = Date()
         let today = calendar.startOfDay(for: now)
         switch self {
@@ -24,18 +26,20 @@ enum DueDateQuickOption: String, CaseIterable {
             return today // 毎日は「今日」として表示し、isRoutine でルーチン扱い
         case .none:
             return nil
+        case .pickDate:
+            return calendar.startOfDay(for: pickedDate)
         }
     }
     
     var isRoutine: Bool { self == .daily }
 }
 
-// MARK: - Verification Mode Display
+// MARK: - タスクカードと同じ表記（申告 / 写真）
 private extension VerificationMode {
-    var displayName: String {
+    var cardLabel: String {
         switch self {
-        case .selfDeclaration: return "自己申告"
-        case .photoEvidence: return "証拠写真"
+        case .selfDeclaration: return "申告"
+        case .photoEvidence: return "写真"
         }
     }
 }
@@ -54,6 +58,8 @@ struct AddTaskView: View {
     @State private var selectedPriority: TaskPriority = .medium
     @State private var giftContent: String = ""
     @State private var selectedVerificationMode: VerificationMode = .selfDeclaration
+    /// 「日付を指定」選択時の期限（カードは yyyy/MM/dd 表示と整合）
+    @State private var pickedDueDate: Date = Date()
     @FocusState private var focusedField: Field?
     
     private let calendar = Calendar.current
@@ -70,23 +76,14 @@ struct AddTaskView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
-                    // 1. タスク名
+                    // カード表示順に合わせる: タイトル → ギフト名 → 詳細 → 期限 → 完了確認 → 優先度
                     taskNameSection
-                    
-                    // 2. 詳細の記入
-                    detailSection
-                    
-                    // 3. いつやる？
-                    dueDateSection
-                    
-                    // 4. 優先度
-                    prioritySection
-                    
-                    // 5. Giftの内容
                     giftSection
-                    
-                    // 6. 達成の条件
+                    detailSection
+                    dueDateSection
                     verificationSection
+                    prioritySection
+                    editingMetaSection
                     
                     Spacer(minLength: 20)
                     
@@ -122,6 +119,9 @@ struct AddTaskView: View {
             if let t = editingTask {
                 taskTitle = t.title
                 taskDetail = t.description ?? ""
+                if let d = t.dueDate {
+                    pickedDueDate = d
+                }
                 selectedDueOption = dueDateQuickOption(from: t)
                 selectedPriority = t.priority
                 giftContent = t.rewardDisplayName ?? ""
@@ -139,9 +139,9 @@ struct AddTaskView: View {
         if calendar.isDate(taskDay, inSameDayAs: today) { return .today }
         if let tomorrow = calendar.date(byAdding: .day, value: 1, to: today),
            calendar.isDate(taskDay, inSameDayAs: tomorrow) { return .tomorrow }
-        if let weekEnd = DueDateQuickOption.thisWeek.dueDate(calendar: calendar),
+        if let weekEnd = DueDateQuickOption.thisWeek.dueDate(calendar: calendar, pickedDate: Date()),
            taskDay <= weekEnd, taskDay >= today { return .thisWeek }
-        return .none
+        return .pickDate
     }
     
     // MARK: - 1. タスク名
@@ -160,14 +160,14 @@ struct AddTaskView: View {
         }
     }
     
-    // MARK: - 2. 詳細の記入（30文字程度）
+    // MARK: - 詳細（カードの説明文に対応）
     private var detailSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("詳細の記入")
+            Text("詳細（任意）")
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundColor(.secondary)
             
-            TextField("補足情報（任意）", text: $taskDetail)
+            TextField("タスクカードに表示される補足", text: $taskDetail)
                 .textFieldStyle(.plain)
                 .font(.system(size: 15))
                 .padding(12)
@@ -185,10 +185,10 @@ struct AddTaskView: View {
         }
     }
     
-    // MARK: - 3. いつやる？（今日/明日/今週/毎日/なし）※編集時「毎日」の場合は他に変更不可
+    // MARK: - 期限（カードのカレンダー行に対応）
     private var dueDateSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("いつやる？")
+            Text("期限")
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundColor(.secondary)
             
@@ -206,10 +206,19 @@ struct AddTaskView: View {
                     }
                 }
             }
+            if selectedDueOption == .pickDate {
+                DatePicker(
+                    "日付",
+                    selection: $pickedDueDate,
+                    displayedComponents: [.date]
+                )
+                .datePickerStyle(.compact)
+                .padding(.top, 4)
+            }
         }
     }
     
-    // MARK: - 4. 優先度
+    // MARK: - 優先度（カード右上の色と対応）
     private var prioritySection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("優先度")
@@ -230,14 +239,14 @@ struct AddTaskView: View {
         }
     }
     
-    // MARK: - 5. Giftの内容
+    // MARK: - ギフト名（カードの 🎁 行に対応）
     private var giftSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Giftの内容")
+            Text("ギフト（報酬名）")
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundColor(.secondary)
             
-            TextField("達成時に解禁したい報酬名（任意）", text: $giftContent)
+            TextField("例: スタバチケット（タイトル下に表示）", text: $giftContent)
                 .textFieldStyle(.plain)
                 .font(.system(size: 17))
                 .padding(16)
@@ -246,21 +255,53 @@ struct AddTaskView: View {
         }
     }
     
-    // MARK: - 6. 達成の条件（自己申告 / 証拠写真）
+    // MARK: - 完了の確認（カードの「申告」「写真」に対応）
     private var verificationSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("達成の条件")
+            Text("完了の確認")
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundColor(.secondary)
             
             HStack(spacing: 10) {
                 ForEach([VerificationMode.selfDeclaration, .photoEvidence], id: \.self) { mode in
                     QuickOptionButton(
-                        title: mode.displayName,
+                        title: mode.cardLabel,
                         isSelected: selectedVerificationMode == mode
                     ) {
                         HapticManager.shared.selectionChanged()
                         selectedVerificationMode = mode
+                    }
+                }
+            }
+        }
+    }
+    
+    /// 編集時のみ: カードの作成者・進捗行（読み取り専用）
+    @ViewBuilder
+    private var editingMetaSection: some View {
+        if let t = editingTask {
+            let creator = t.createdByUserName ?? t.senderName ?? t.fromDisplayName
+            let showCreator = !(creator ?? "").isEmpty
+            let showProgress = t.isTargetDaysTask
+            if showCreator || showProgress {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("カードの表示")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(.secondary)
+                    if showCreator, let name = creator, !name.isEmpty {
+                        HStack(alignment: .top, spacing: 8) {
+                            Text("作成者")
+                                .font(.system(size: 12))
+                                .foregroundColor(.secondary)
+                            Text(name)
+                                .font(.system(size: 14))
+                                .foregroundColor(.primary)
+                        }
+                    }
+                    if showProgress {
+                        Text("進捗: \(t.currentCount)/\(t.targetDays)（届いたタスクの目標日数は送信時の設定に基づきます）")
+                            .font(.system(size: 12))
+                            .foregroundColor(.secondary)
                     }
                 }
             }
@@ -297,7 +338,7 @@ struct AddTaskView: View {
         let title = taskTitle.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !title.isEmpty else { return }
         
-        let dueDate = selectedDueOption.dueDate(calendar: calendar)
+        let dueDate = selectedDueOption.dueDate(calendar: calendar, pickedDate: pickedDueDate)
         let description = taskDetail.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : String(taskDetail.prefix(detailMaxLength)).trimmingCharacters(in: .whitespacesAndNewlines)
         let rewardName = giftContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : giftContent.trimmingCharacters(in: .whitespacesAndNewlines)
         

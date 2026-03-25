@@ -53,12 +53,7 @@ struct DashboardView: View {
                 .presentationDragIndicator(.visible)
                 .onDisappear { editingTask = nil }
             }
-            .sheet(item: Binding(
-                get: { giftViewModel.lastUnlockedGift },
-                set: { giftViewModel.lastUnlockedGift = $0 }
-            )) { gift in
-                CelebrationModal(message: "おめでとう🎉", subtitle: gift.title)
-            }
+            // ギフト解禁モーダルは ContentView で表示
             .alert("データをリセット", isPresented: $showResetConfirm) {
                 Button("キャンセル", role: .cancel) {}
                 Button("リセット", role: .destructive) {

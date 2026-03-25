@@ -106,7 +106,6 @@ struct TaskCardView: View {
         HStack(spacing: 16) {
             dueDateLabel
             verificationModeLabel
-            priorityLabel
             Spacer()
             creatorLabel
         }
@@ -133,18 +132,6 @@ struct TaskCardView: View {
         } icon: {
             Image(systemName: task.verificationMode == .photoEvidence ? "camera.fill" : "hand.raised.fill")  // viewModel.taskからtaskに変更
                 .font(.system(size: 12))
-        }
-        .foregroundColor(.secondary)
-    }
-    
-    private var priorityLabel: some View {
-        Label {
-            Text(task.priority.displayName)
-                .font(.system(size: 12))
-        } icon: {
-            Circle()
-                .fill(priorityColor(task.priority))
-                .frame(width: 8, height: 8)
         }
         .foregroundColor(.secondary)
     }
@@ -178,6 +165,8 @@ struct TaskCardView: View {
     }
     
     // MARK: - Complete Button
+    /// List 内ではデフォルトの Button が行の高さいっぱいにヒット領域が広がり、カード全体タップで完了になることがあるため
+    /// `.plain` + `fixedSize(vertical:)` で「この行だけ」に限定する。
     private var completeButton: some View {
         Button(action: {
             if task.status == .pendingApproval { return }
@@ -197,7 +186,11 @@ struct TaskCardView: View {
             .padding(.vertical, 12)
             .background(buttonBackground)
             .cornerRadius(12)
+            .contentShape(Rectangle())
         }
+        .buttonStyle(.plain)
+        .fixedSize(horizontal: false, vertical: true)
+        .frame(maxWidth: .infinity, alignment: .center)
         .disabled(task.status == .completed || task.status == .pendingApproval)
         .simultaneousGesture(
             LongPressGesture(minimumDuration: 0.5)
@@ -286,7 +279,7 @@ struct TaskCardView: View {
     private static let displayDateFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "ja_JP")
-        formatter.dateFormat = "yyyy:MM:dd"
+        formatter.dateFormat = "yyyy/MM/dd"
         return formatter
     }()
 }

@@ -69,6 +69,7 @@ struct GiftCardView: View {
                     message: msg.isEmpty ? "ギフトを獲得しました！" : msg,
                     subtitle: gift.title
                 )
+                .interactiveDismissDisabled(true)
             }
     }
     
@@ -251,7 +252,7 @@ struct GiftCardView: View {
     private static let displayDateFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "ja_JP")
-        formatter.dateFormat = "yyyy:MM:dd"
+        formatter.dateFormat = "yyyy/MM/dd"
         return formatter
     }()
     
@@ -375,32 +376,48 @@ struct GiftReceivedModal: View {
     }
 }
 
-// MARK: - おめでとうモーダル（rewardUrl が空の解禁時）
+// MARK: - おめでとうモーダル（rewardUrl が空の解禁時・タスク承認後の解禁など）
 struct CelebrationModal: View {
     let message: String
     var subtitle: String? = nil
+    /// 補足説明（複数行可）。下スワイプで閉じられないため、本文で十分な情報を出す。
+    var detail: String? = nil
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
-        VStack(spacing: 24) {
+        VStack(spacing: 20) {
             Text(message)
                 .font(.system(size: 28, weight: .bold))
+                .multilineTextAlignment(.center)
             if let subtitle = subtitle, !subtitle.isEmpty {
                 Text(subtitle)
-                    .font(.system(size: 17))
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundColor(.primary)
+                    .multilineTextAlignment(.center)
+            }
+            if let detail = detail, !detail.isEmpty {
+                Text(detail)
+                    .font(.system(size: 15))
                     .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            Button("閉じる") {
+            Spacer(minLength: 8)
+            Button {
                 dismiss()
+            } label: {
+                Text("閉じる")
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(Color.accentColor)
+                    .cornerRadius(12)
             }
-            .font(.system(size: 17, weight: .semibold))
-            .foregroundColor(.white)
-            .padding(.horizontal, 32)
-            .padding(.vertical, 12)
-            .background(Color.accentColor)
-            .cornerRadius(12)
+            .buttonStyle(.plain)
         }
-        .padding(40)
+        .padding(28)
+        .frame(maxWidth: .infinity)
     }
 }
 

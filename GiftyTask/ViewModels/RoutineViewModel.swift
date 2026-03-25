@@ -1,5 +1,7 @@
 import Foundation
 import Combine
+import FirebaseAuth
+import FirebaseFirestore
 
 // MARK: - ルーティンでギフト解禁時の通知（アラート・演出用）
 struct RoutineGiftUnlockEvent: Identifiable, Equatable {
@@ -31,6 +33,7 @@ struct CalendarDay: Identifiable {
 @MainActor
 class RoutineViewModel: ObservableObject {
     @Published var routines: [Routine] = []
+    @Published var receivedRoutineSuggestions: [FirestoreRoutineSuggestionDTO] = []
     /// ギフト獲得時にセット。表示側で消費して nil に戻す。
     @Published var routineGiftUnlockEvent: RoutineGiftUnlockEvent?
     
@@ -38,9 +41,17 @@ class RoutineViewModel: ObservableObject {
     var giftViewModel: GiftViewModel?
     
     private static let routinesKey = "routines_data"
+    private var routineSuggestionsListener: ListenerRegistration?
+    /// ルーティン提案の初回スナップショット除外・新着検知用
+    private var isFirstRoutineSuggestionsSnapshot = true
+    private var lastRoutineSuggestionIds = Set<String>()
     
     init() {
         loadRoutines()
+    }
+    
+    deinit {
+        routineSuggestionsListener?.remove()
     }
     
     func addRoutine(_ routine: Routine) {
@@ -81,7 +92,7 @@ class RoutineViewModel: ObservableObject {
             routine.completionHistory.sort()
             routine.currentCycleCount += 1
             
-            if routine.currentCycleCount >= target {
+                if routine.currentCycleCount >= target {
                 if !routine.associatedGiftId.isEmpty, let gv = giftViewModel,
                    let unlocked = gv.unlockGiftIfLocked(id: routine.associatedGiftId, publishToLastUnlocked: false) {
                     routineGiftUnlockEvent = RoutineGiftUnlockEvent(
@@ -89,8 +100,12 @@ class RoutineViewModel: ObservableObject {
                         giftTitle: unlocked.title,
                         routineTitle: routine.title
                     )
+                    NotificationService.notifyRoutineGiftUnlocked(
+                        giftTitle: unlocked.title,
+                        routineTitle: routine.title
+                    )
                 }
-                routine.currentCycleCount = 0
+                // リセットはユーザーが「リセットする」ボタンを押したときのみ。100%表示を維持する。
             }
         }
         
@@ -98,8 +113,86 @@ class RoutineViewModel: ObservableObject {
         saveRoutines()
     }
     
+    /// ルーティンのサイクルカウントを 0 にリセットする。
+    func resetRoutineCycle(id: UUID) {
+        guard let index = routines.firstIndex(where: { $0.id == id }) else { return }
+        routines[index].currentCycleCount = 0
+        if routineGiftUnlockEvent?.routineId == id {
+            routineGiftUnlockEvent = nil
+        }
+        saveRoutines()
+    }
+    
+    /// ギフト解禁アラート OK 時に呼ぶ。イベントのみクリアし、カウントはリセットしない（ユーザーが「リセットする」で行う）。
     func clearRoutineGiftUnlockEvent() {
         routineGiftUnlockEvent = nil
+    }
+    
+    /// receiver_id == 自分 の pending ルーティン提案を購読
+    /// - Note: 受信BOXを開く前に通知を出すには、ログイン直後（例: ContentView）から呼ぶこと。
+    func startListeningRoutineSuggestions() {
+        stopListeningRoutineSuggestions()
+        guard let uid = Auth.auth().currentUser?.uid else { return }
+        routineSuggestionsListener = TaskRepository.shared.addReceivedRoutineSuggestionsListener(receiverId: uid) { [weak self] items in
+            _Concurrency.Task { @MainActor in
+                guard let self else { return }
+                let sorted = items.sorted { lhs, rhs in
+                    (lhs.createdAt ?? .distantPast) > (rhs.createdAt ?? .distantPast)
+                }
+                self.handleRoutineSuggestionsSnapshot(sorted)
+                self.receivedRoutineSuggestions = sorted
+            }
+        }
+    }
+    
+    func stopListeningRoutineSuggestions() {
+        routineSuggestionsListener?.remove()
+        routineSuggestionsListener = nil
+        receivedRoutineSuggestions = []
+        isFirstRoutineSuggestionsSnapshot = true
+        lastRoutineSuggestionIds.removeAll()
+    }
+    
+    /// 新着の pending 提案のみローカル通知（初回スナップショットは除外）
+    private func handleRoutineSuggestionsSnapshot(_ items: [FirestoreRoutineSuggestionDTO]) {
+        let currentIds = Set(items.map(\.id))
+        if isFirstRoutineSuggestionsSnapshot {
+            isFirstRoutineSuggestionsSnapshot = false
+            lastRoutineSuggestionIds = currentIds
+            return
+        }
+        for dto in items where dto.status == "pending" {
+            if !lastRoutineSuggestionIds.contains(dto.id) {
+                NotificationService.notifyIncomingRoutineSuggestion(
+                    senderName: dto.senderName ?? "ユーザー",
+                    routineTitle: dto.title
+                )
+            }
+        }
+        lastRoutineSuggestionIds = currentIds
+    }
+    
+    /// 受信したルーティン提案を受け入れ、ローカルへ取り込み、Firestore 側を accepted に更新
+    func acceptRoutineSuggestion(_ suggestion: FirestoreRoutineSuggestionDTO) async throws {
+        guard let giftViewModel else { return }
+        try await TaskRepository.shared.acceptRoutineSuggestion(suggestionId: suggestion.id)
+        
+        let routineId = UUID()
+        let gift = giftViewModel.createRoutineRewardGift(
+            title: suggestion.associatedGiftName,
+            description: nil,
+            routineId: routineId,
+            linkedRoutineTitle: suggestion.title
+        )
+        let local = Routine(
+            id: routineId,
+            title: suggestion.title,
+            description: suggestion.description,
+            associatedGiftId: gift.id,
+            targetCount: max(1, suggestion.targetCount),
+            currentCycleCount: 0
+        )
+        addRoutine(local)
     }
     
     /// カレンダー表示用（日曜始まり・当月の1日位置に合わせた月グリッド。前月・翌月を補完）

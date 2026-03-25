@@ -7,11 +7,11 @@ struct RoutineListView: View {
     @State private var showAddRoutine = false
     
     private let primaryColor = Color(hex: "#4F46E5")
-    private let secondaryColor = Color(hex: "#6B7280")
+    /// タスク一覧などと同じく colorScheme に追従する背景
     private let backgroundGradient = LinearGradient(
-        colors: [Color.white, Color(hex: "#F0F4FF")],
-        startPoint: .top,
-        endPoint: .bottom
+        colors: [Color.blue.opacity(0.1), Color.purple.opacity(0.1)],
+        startPoint: .topLeading,
+        endPoint: .bottomTrailing
     )
     
     var body: some View {
@@ -36,7 +36,7 @@ struct RoutineListView: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     Text("全 \(routineViewModel.routines.count) 件")
                         .font(.subheadline)
-                        .foregroundColor(secondaryColor)
+                        .foregroundColor(.secondary)
                 }
             }
             .sheet(isPresented: $showAddRoutine) {
@@ -51,13 +51,13 @@ struct RoutineListView: View {
         VStack(spacing: 16) {
             Image(systemName: "repeat.circle")
                 .font(.system(size: 60))
-                .foregroundColor(secondaryColor.opacity(0.5))
+                .foregroundStyle(.secondary)
             Text("ルーティンがありません")
                 .font(.title2.weight(.semibold))
-                .foregroundColor(.primary)
+                .foregroundStyle(.primary)
             Text("＋ボタンから新しいルーティンを追加しましょう")
                 .font(.subheadline)
-                .foregroundColor(secondaryColor)
+                .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -81,7 +81,7 @@ struct RoutineListView: View {
                     HStack(spacing: 12) {
                         Image(systemName: routine.isCompletedToday ? "checkmark.circle.fill" : "circle")
                             .font(.system(size: 22))
-                            .foregroundColor(routine.isCompletedToday ? primaryColor : secondaryColor.opacity(0.5))
+                            .foregroundStyle(routine.isCompletedToday ? primaryColor : Color.secondary.opacity(0.55))
                         
                         VStack(alignment: .leading, spacing: 4) {
                             Text(routine.title)
@@ -90,7 +90,7 @@ struct RoutineListView: View {
                             if let desc = routine.description, !desc.isEmpty {
                                 Text(desc)
                                     .font(.system(size: 14))
-                                    .foregroundColor(secondaryColor)
+                                    .foregroundStyle(.secondary)
                                     .lineLimit(2)
                             }
                             HStack(spacing: 6) {
@@ -106,15 +106,15 @@ struct RoutineListView: View {
                         VStack(alignment: .trailing, spacing: 4) {
                             Text("\(routine.currentCycleCount)/\(max(1, routine.targetCount))日")
                                 .font(.system(size: 14, weight: .semibold))
-                                .foregroundColor(secondaryColor)
+                                .foregroundStyle(.secondary)
                             Image(systemName: "chevron.right")
                                 .font(.system(size: 12, weight: .semibold))
-                                .foregroundColor(secondaryColor.opacity(0.5))
+                                .foregroundStyle(.tertiary)
                         }
                     }
                     .padding(.vertical, 8)
                 }
-                .listRowBackground(Color.white.opacity(0.8))
+                .listRowBackground(Color(.secondarySystemGroupedBackground))
                 .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
             }
         }

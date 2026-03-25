@@ -58,7 +58,7 @@ struct AddGiftView: View {
                     endPoint: .bottomTrailing
                 )
             )
-            .navigationTitle(isEditing ? "条件を編集" : stepTitle)
+            .navigationTitle(editingNavigationTitle)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -104,15 +104,32 @@ struct AddGiftView: View {
         }
     }
     
-    // MARK: - ステップ1: 基本情報
+    /// 編集時はカードに合わせたタイトルにする
+    private var editingNavigationTitle: String {
+        guard isEditing else { return stepTitle }
+        switch step {
+        case .basic: return "ギフトを編集"
+        case .condition: return "解禁条件"
+        case .confirm: return "確認・保存"
+        }
+    }
+    
+    private static let cardDateFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "ja_JP")
+        f.dateFormat = "yyyy/MM/dd"
+        return f
+    }()
+    
+    // MARK: - ステップ1: 基本情報（ギフトカードの見出し・詳細に対応）
     private var step1Basic: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("タイトル（報酬名）")
+                    Text("ギフト名")
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundColor(.secondary)
-                    TextField("例: スタバチケット、Amazonギフト券", text: $title)
+                    TextField("例: スタバチケット、Amazonギフト券（カードの太字タイトル）", text: $title)
                         .textFieldStyle(.plain)
                         .font(.system(size: 17))
                         .padding(16)
@@ -120,15 +137,18 @@ struct AddGiftView: View {
                         .glassmorphism(cornerRadius: 14)
                 }
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("詳細説明")
+                    Text("詳細（任意）")
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundColor(.secondary)
-                    TextField("補足（任意）", text: $description)
+                    TextField("カードに2行まで表示される補足", text: $description)
                         .textFieldStyle(.plain)
                         .font(.system(size: 15))
                         .padding(16)
                         .focused($focusedField, equals: .description)
                         .glassmorphism(cornerRadius: 14)
+                }
+                if isEditing, let g = editingGift {
+                    giftCardContextSection(gift: g)
                 }
                 Spacer(minLength: 20)
                 nextButton(title: "次へ") {
@@ -138,12 +158,58 @@ struct AddGiftView: View {
         }
     }
     
+    /// ギフトカードの info 行と同じ情報（編集時・読み取り専用）
+    private func giftCardContextSection(gift: Gift) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("カードの表示（参考）")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundColor(.secondary)
+            if let taskTitle = resolvedLinkedTaskTitle(for: gift), !taskTitle.isEmpty {
+                Label("タスク: \(taskTitle)", systemImage: "checklist")
+                    .font(.system(size: 13))
+                    .foregroundColor(.secondary)
+            }
+            if let due = resolvedLinkedDueDate(for: gift) {
+                Label("期限: \(Self.cardDateFormatter.string(from: due))", systemImage: "calendar")
+                    .font(.system(size: 13))
+                    .foregroundColor(.secondary)
+            }
+            let creator = gift.createdByUserName ?? gift.assignedFromUserName
+            if let creator, !creator.isEmpty {
+                Text("作成者: \(creator)")
+                    .font(.system(size: 13))
+                    .foregroundColor(.secondary)
+            }
+            Text("金額・URL・受け取りメッセージは最終画面で編集できます（カード下部の¥表示など）。")
+                .font(.system(size: 11))
+                .foregroundColor(Color(.tertiaryLabel))
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color(.systemGray6).opacity(0.6))
+        )
+    }
+    
+    private func resolvedLinkedTaskTitle(for gift: Gift) -> String? {
+        if let t = gift.linkedTaskTitle, !t.isEmpty { return t }
+        if let tid = gift.taskId, let task = taskViewModel.getTask(by: tid) { return task.title }
+        return nil
+    }
+    
+    private func resolvedLinkedDueDate(for gift: Gift) -> Date? {
+        if let d = gift.linkedTaskDueDate { return d }
+        if let tid = gift.taskId, let task = taskViewModel.getTask(by: tid) { return task.dueDate }
+        return nil
+    }
+    
     // MARK: - ステップ2: 条件設定
     private var step2Condition: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("条件")
+                    Text("解禁条件")
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundColor(.secondary)
                     Menu {
@@ -324,7 +390,7 @@ struct AddGiftView: View {
             VStack(alignment: .leading, spacing: 24) {
                 // URL設定の選択
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("リンク先URL")
+                    Text("リンク先URL（アンロック後の「見る」など）")
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundColor(.secondary)
                     HStack(spacing: 12) {
@@ -381,7 +447,7 @@ struct AddGiftView: View {
                     }
                 }
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("金額（円）")
+                    Text("金額（円・カード左下の表示）")
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundColor(.secondary)
                     HStack(spacing: 0) {

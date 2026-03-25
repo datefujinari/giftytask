@@ -43,6 +43,7 @@ struct ContentView: View {
             ReceivedBoxView()
                 .environmentObject(taskViewModel)
                 .environmentObject(giftViewModel)
+                .environmentObject(routineViewModel)
                 .tabItem {
                     Label("受信BOX", systemImage: "tray.and.arrow.down.fill")
                 }
@@ -69,6 +70,41 @@ struct ContentView: View {
                 print("❌ 匿名ログイン失敗: \(error.localizedDescription)")
             }
         }
+        // 認証後すぐ Firestore 購読を開始（受信BOXを開かないと届かなかったルーティン提案通知のため）
+        .task(id: authManager.currentUser?.uid) {
+            guard let uid = authManager.currentUser?.uid, !uid.isEmpty else {
+                taskViewModel.stopListeningReceivedTasks()
+                taskViewModel.stopListeningSentTasks()
+                routineViewModel.stopListeningRoutineSuggestions()
+                return
+            }
+            taskViewModel.giftViewModel = giftViewModel
+            taskViewModel.activityViewModel = activityViewModel
+            routineViewModel.giftViewModel = giftViewModel
+            await taskViewModel.loadTasks()
+            routineViewModel.startListeningRoutineSuggestions()
+        }
+        // タブ切替で消えないようルートに集約。下スワイプでは閉じず「閉じる」のみ。
+        .sheet(item: Binding(
+            get: { giftViewModel.lastUnlockedGift },
+            set: { giftViewModel.lastUnlockedGift = $0 }
+        )) { gift in
+            CelebrationModal(
+                message: "おめでとう🎉",
+                subtitle: gift.title,
+                detail: ContentView.giftUnlockCelebrationDetail(for: gift)
+            )
+            .interactiveDismissDisabled(true)
+            .presentationDragIndicator(.hidden)
+        }
+    }
+    
+    /// フレンド割当ギフトは「承認」文面、それ以外は一般的な案内
+    private static func giftUnlockCelebrationDetail(for gift: Gift) -> String {
+        if gift.type == .friendAssigned {
+            return "相手がタスクを承認し、ギフトが解禁されました。\nギフトBOXの「アンロック済み」からご利用ください。"
+        }
+        return "ギフトが解禁されました。\nギフトBOXの「アンロック済み」からご利用ください。"
     }
 }
 

@@ -28,5 +28,18 @@ service cloud.firestore {
     match /gifts/{giftId} {
       allow read, write: if request.auth != null;
     }
+
+    // ルーティン提案: 送信者が作成、受信者が購読・承認（status 更新）
+    match /routine_suggestions/{suggestionId} {
+      allow read: if request.auth != null
+        && (request.auth.uid == resource.data.sender_id
+            || request.auth.uid == resource.data.receiver_id);
+      // 作成は送信者のみ（tasks と同様）
+      allow create: if request.auth != null
+        && request.auth.uid == request.resource.data.sender_id;
+      allow update, delete: if request.auth != null
+        && (request.auth.uid == resource.data.sender_id
+            || request.auth.uid == resource.data.receiver_id);
+    }
   }
 }

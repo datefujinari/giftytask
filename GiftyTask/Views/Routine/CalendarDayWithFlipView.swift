@@ -10,7 +10,6 @@ struct CalendarDayWithFlipView: View {
     @State private var isFlipped = false
     
     private let primaryColor = Color(hex: "#4F46E5")
-    private let secondaryColor = Color(hex: "#6B7280")
     
     private var weekday: Int {
         Calendar.current.component(.weekday, from: day.date)
@@ -22,15 +21,15 @@ struct CalendarDayWithFlipView: View {
     /// 日付数字の色（完了時は白は親側で上書き）
     private var dayNumberColor: Color {
         if day.isCompleted { return .white }
-        if !day.isInDisplayedMonth { return Color.gray.opacity(0.45) }
+        if !day.isInDisplayedMonth { return Color.secondary.opacity(0.45) }
         if isSunday { return Color.red.opacity(0.88) }
         if isSaturday { return Color.blue.opacity(0.78) }
-        return secondaryColor
+        return Color.secondary
     }
     
     private var incompleteCircleFill: Color {
-        if !day.isInDisplayedMonth { return secondaryColor.opacity(0.14) }
-        return secondaryColor.opacity(0.32)
+        if !day.isInDisplayedMonth { return Color.secondary.opacity(0.12) }
+        return Color.secondary.opacity(0.28)
     }
     
     var body: some View {

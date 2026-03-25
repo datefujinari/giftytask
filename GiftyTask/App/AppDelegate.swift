@@ -51,8 +51,18 @@ final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCent
     }
     
     // MARK: - UNUserNotificationCenterDelegate（フォアグラウンドで通知表示）
-    func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification) -> UNNotificationPresentationOptions {
-        [.banner, .sound, .badge]
+    /// Cloud Functions 経由のプッシュは `gifty_cf` を付与。アプリ起動中は Firestore リスナーでローカル通知済みのため二重表示を防ぐ。
+    func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        willPresent notification: UNNotification,
+        withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
+    ) {
+        let userInfo = notification.request.content.userInfo
+        if let flag = userInfo["gifty_cf"] as? String, flag == "1" {
+            completionHandler([])
+        } else {
+            completionHandler([.banner, .sound, .badge])
+        }
     }
 }
 

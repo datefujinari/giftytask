@@ -1,30 +1,30 @@
 import SwiftUI
 
-// MARK: - 受信BOX View（届いたタスクのうち pending を一覧・受け入れ）
+// MARK: - 受信BOX View（届いた提案を一覧・受け入れ）
 struct ReceivedBoxView: View {
     @EnvironmentObject var taskViewModel: TaskViewModel
     @EnvironmentObject var giftViewModel: GiftViewModel
+    @EnvironmentObject var routineViewModel: RoutineViewModel
     @State private var showCreateAssignment = false
     @State private var showApprovalPending = false
     @State private var acceptingTaskId: String?
+    @State private var acceptingRoutineId: String?
     
-    private var pendingTasks: [FirestoreTaskDTO] {
-        taskViewModel.pendingReceivedTasks
+    private var pendingTasks: [FirestoreTaskDTO] { taskViewModel.pendingReceivedTasks }
+    private var pendingRoutines: [FirestoreRoutineSuggestionDTO] {
+        routineViewModel.receivedRoutineSuggestions.filter { $0.status == "pending" }
     }
-    
-    private var pendingApprovalCount: Int {
-        taskViewModel.pendingApprovalTasks.count
-    }
+    private var pendingApprovalCount: Int { taskViewModel.pendingApprovalTasks.count }
     
     var body: some View {
         NavigationView {
             ZStack(alignment: .bottomTrailing) {
                 VStack(spacing: 0) {
-                    if pendingTasks.isEmpty && pendingApprovalCount == 0 {
+                    if pendingTasks.isEmpty && pendingRoutines.isEmpty && pendingApprovalCount == 0 {
                         EmptyStateView(
                             icon: "tray",
-                            title: "届いたタスクはありません",
-                            message: "タスクが送られてくるとここに表示されます"
+                            title: "届いた提案はありません",
+                            message: "タスクやルーティン提案が届くとここに表示されます"
                         )
                     } else {
                         ScrollView {
@@ -46,8 +46,9 @@ struct ReceivedBoxView: View {
                                     }
                                     .padding(.horizontal)
                                 }
+                                
                                 ForEach(pendingTasks) { dto in
-                                    ReceivedBoxCardView(
+                                    ReceivedTaskCardView(
                                         dto: dto,
                                         isAccepting: acceptingTaskId == dto.id,
                                         onAccept: {
@@ -56,6 +57,25 @@ struct ReceivedBoxView: View {
                                                 defer { acceptingTaskId = nil }
                                                 do {
                                                     try await taskViewModel.acceptReceivedTask(dto, giftViewModel: giftViewModel)
+                                                } catch {
+                                                    taskViewModel.errorMessage = error.localizedDescription
+                                                }
+                                            }
+                                        }
+                                    )
+                                    .padding(.horizontal)
+                                }
+                                
+                                ForEach(pendingRoutines) { suggestion in
+                                    ReceivedRoutineSuggestionCardView(
+                                        suggestion: suggestion,
+                                        isAccepting: acceptingRoutineId == suggestion.id,
+                                        onAccept: {
+                                            _Concurrency.Task { @MainActor in
+                                                acceptingRoutineId = suggestion.id
+                                                defer { acceptingRoutineId = nil }
+                                                do {
+                                                    try await routineViewModel.acceptRoutineSuggestion(suggestion)
                                                 } catch {
                                                     taskViewModel.errorMessage = error.localizedDescription
                                                 }
@@ -86,11 +106,11 @@ struct ReceivedBoxView: View {
                         endPoint: .bottomTrailing
                     )
                 )
+                // ルーティン提案の購読は ContentView でログイン後に開始済み（ここではタスク購読の再同期のみ）
                 .task {
                     await taskViewModel.loadTasks()
                 }
                 
-                // FAB: タスク送信
                 Button {
                     HapticManager.shared.mediumImpact()
                     showCreateAssignment = true
@@ -125,19 +145,16 @@ struct ReceivedBoxView: View {
     }
 }
 
-// MARK: - 受信BOX用カード（タスク名・ギフト名・送り主・受け入れるボタン）
-struct ReceivedBoxCardView: View {
+// MARK: - 受信BOX用カード（タスク）
+struct ReceivedTaskCardView: View {
     let dto: FirestoreTaskDTO
     var isAccepting: Bool = false
     var onAccept: () -> Void
     
-    private var senderDisplayName: String {
-        dto.senderName ?? "匿名ユーザー"
-    }
+    private var senderDisplayName: String { dto.senderName ?? "匿名ユーザー" }
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            // 送り主を大きく表示
             HStack(alignment: .center, spacing: 12) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("From:")
@@ -148,7 +165,6 @@ struct ReceivedBoxCardView: View {
                         .foregroundColor(.primary)
                 }
                 Spacer()
-                // 累計達成数（ステータス）
                 VStack(alignment: .trailing, spacing: 2) {
                     Text("\(dto.senderTotalCompletedCount)")
                         .font(.system(size: 20, weight: .bold))
@@ -174,8 +190,7 @@ struct ReceivedBoxCardView: View {
             Button(action: onAccept) {
                 HStack {
                     if isAccepting {
-                        ProgressView()
-                            .tint(.white)
+                        ProgressView().tint(.white)
                     } else {
                         Text("受け入れる")
                             .font(.subheadline.weight(.semibold))
@@ -191,7 +206,74 @@ struct ReceivedBoxCardView: View {
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(.systemBackground))
+        .background(Color.green.opacity(0.12))
+        .cornerRadius(16)
+        .shadow(color: .black.opacity(0.08), radius: 8, x: 0, y: 2)
+    }
+}
+
+// MARK: - 受信BOX用カード（ルーティン）
+struct ReceivedRoutineSuggestionCardView: View {
+    let suggestion: FirestoreRoutineSuggestionDTO
+    var isAccepting: Bool = false
+    var onAccept: () -> Void
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("From: \(suggestion.senderName ?? "匿名ユーザー")")
+                    .font(.headline)
+                    .foregroundColor(.primary)
+                Spacer()
+                Text("ルーティン")
+                    .font(.caption.weight(.semibold))
+                    .foregroundColor(.blue)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color.blue.opacity(0.15))
+                    .cornerRadius(8)
+            }
+            Text(suggestion.title)
+                .font(.headline)
+                .foregroundColor(.primary)
+                .lineLimit(2)
+            if let desc = suggestion.description, !desc.isEmpty {
+                Text(desc)
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .lineLimit(2)
+            }
+            HStack(spacing: 6) {
+                Image(systemName: "gift.fill")
+                    .font(.caption)
+                Text(suggestion.associatedGiftName)
+                    .font(.subheadline)
+                Spacer()
+                Text("\(max(1, suggestion.targetCount))日")
+                    .font(.subheadline.weight(.semibold))
+            }
+            .foregroundColor(.secondary)
+            
+            Button(action: onAccept) {
+                HStack {
+                    if isAccepting {
+                        ProgressView().tint(.white)
+                    } else {
+                        Text("受け入れる")
+                            .font(.subheadline.weight(.semibold))
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 10)
+                .background(Color.blue)
+                .foregroundColor(.white)
+                .cornerRadius(12)
+            }
+            .disabled(isAccepting)
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.blue.opacity(0.12))
         .cornerRadius(16)
         .shadow(color: .black.opacity(0.08), radius: 8, x: 0, y: 2)
     }

@@ -23,7 +23,6 @@ struct EditRoutineSheet: View {
     }
     
     private let primaryColor = Color(hex: "#4F46E5")
-    private let secondaryColor = Color(hex: "#6B7280")
     
     var body: some View {
         NavigationStack {
@@ -46,7 +45,7 @@ struct EditRoutineSheet: View {
                 } footer: {
                     Text("ギフトBOXに表示される名前です。未設定のルーティンでは名前を入れて保存するとギフトを新規作成して紐付けます。")
                         .font(.caption)
-                        .foregroundColor(secondaryColor)
+                        .foregroundStyle(.secondary)
                 }
                 
                 Section("目標達成日数") {
@@ -75,14 +74,14 @@ struct EditRoutineSheet: View {
                     Button("キャンセル") {
                         isPresented = false
                     }
-                    .foregroundColor(secondaryColor)
+                    .foregroundStyle(.secondary)
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("保存") {
                         saveRoutine()
                     }
                     .fontWeight(.semibold)
-                    .foregroundColor(canSave ? primaryColor : secondaryColor.opacity(0.5))
+                    .foregroundColor(canSave ? primaryColor : Color.secondary.opacity(0.5))
                     .disabled(!canSave)
                 }
             }

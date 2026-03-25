@@ -152,12 +152,7 @@ struct TaskListView: View {
                 .presentationDragIndicator(.visible)
                 .onDisappear { editingTask = nil }
             }
-            .sheet(item: Binding(
-                get: { giftViewModel.lastUnlockedGift },
-                set: { giftViewModel.lastUnlockedGift = $0 }
-            )) { gift in
-                CelebrationModal(message: "おめでとう🎉", subtitle: gift.title)
-            }
+            // ギフト解禁モーダルは ContentView で表示（タブをまたいでも消えない・閉じるまで表示）
         }
     }
 }

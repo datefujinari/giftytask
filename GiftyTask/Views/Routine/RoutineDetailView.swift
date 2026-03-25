@@ -26,7 +26,6 @@ struct RoutineDetailView: View {
     }
     
     private let primaryColor = Color(hex: "#4F46E5")
-    private let secondaryColor = Color(hex: "#6B7280")
     
     private var target: Int { max(1, currentRoutine.targetCount) }
     private var cycleProgress: Double {
@@ -84,17 +83,16 @@ struct RoutineDetailView: View {
                 RoutineDetailCalendarSection(
                     calendarDays: calendarDays,
                     routine: currentRoutine,
-                    viewModel: routineViewModel,
-                    secondaryColor: secondaryColor
+                    viewModel: routineViewModel
                 )
             }
             .padding()
         }
         .background(
             LinearGradient(
-                colors: [Color.white, Color(hex: "#F0F4FF")],
-                startPoint: .top,
-                endPoint: .bottom
+                colors: [Color.blue.opacity(0.1), Color.purple.opacity(0.1)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
             )
         )
     }
@@ -107,34 +105,35 @@ struct RoutineDetailView: View {
     }
     
     private var statsCard: some View {
-        HStack(spacing: 24) {
-            progressCircle
-            streakView
-            Spacer()
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(spacing: 24) {
+                progressCircle
+                streakView
+                Spacer()
+            }
+            if currentRoutine.currentCycleCount > 0 {
+                Button {
+                    routineViewModel.resetRoutineCycle(id: currentRoutine.id)
+                    HapticManager.shared.lightImpact()
+                } label: {
+                    Text("リセットする")
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+            }
         }
         .padding(20)
-        .background(Color.white.opacity(0.8))
+        .background(Color(.secondarySystemGroupedBackground))
         .cornerRadius(16)
-        .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 4)
+        .shadow(color: Color.primary.opacity(0.06), radius: 8, x: 0, y: 4)
     }
     
     private var progressCircle: some View {
-        ZStack {
-            Circle()
-                .stroke(secondaryColor.opacity(0.2), lineWidth: 8)
-                .frame(width: 80, height: 80)
-            Circle()
-                .trim(from: 0, to: cycleProgress)
-                .stroke(primaryColor, style: StrokeStyle(lineWidth: 8, lineCap: .round))
-                .frame(width: 80, height: 80)
-                .rotationEffect(.degrees(-90))
-            Text("\(currentRoutine.currentCycleCount)/\(target)")
-                .font(.system(size: 14, weight: .bold))
-                .foregroundColor(primaryColor)
-                .minimumScaleFactor(0.7)
-                .lineLimit(1)
-                .frame(width: 72)
-        }
+        EvolutionaryProgressView(
+            progress: cycleProgress,
+            displayText: "\(currentRoutine.currentCycleCount)/\(target)"
+        )
     }
     
     private var streakView: some View {
@@ -149,7 +148,7 @@ struct RoutineDetailView: View {
             }
             Text("連続達成")
                 .font(.system(size: 14))
-                .foregroundColor(secondaryColor)
+                .foregroundStyle(.secondary)
         }
     }
     
@@ -159,8 +158,7 @@ struct RoutineDetailView: View {
             currentCount: currentRoutine.currentCycleCount,
             target: target,
             cycleProgress: cycleProgress,
-            primaryColor: primaryColor,
-            secondaryColor: secondaryColor
+            primaryColor: primaryColor
         )
     }
     
@@ -177,13 +175,13 @@ private struct RoutineDetailGiftProgressCard: View {
     let target: Int
     let cycleProgress: Double
     let primaryColor: Color
-    let secondaryColor: Color
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Text("🎁 ご褒美")
                     .font(.headline)
+                    .foregroundStyle(.primary)
                 Spacer()
                 Text(linkedGiftTitle)
                     .font(.subheadline.weight(.semibold))
@@ -193,11 +191,11 @@ private struct RoutineDetailGiftProgressCard: View {
             }
             Text("次のギフトまで \(currentCount) / \(target) 日")
                 .font(.subheadline)
-                .foregroundColor(secondaryColor)
+                .foregroundStyle(.secondary)
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
                     Capsule()
-                        .fill(secondaryColor.opacity(0.15))
+                        .fill(Color.secondary.opacity(0.2))
                         .frame(height: 10)
                     Capsule()
                         .fill(
@@ -213,9 +211,9 @@ private struct RoutineDetailGiftProgressCard: View {
             .frame(height: 10)
         }
         .padding(20)
-        .background(Color.white.opacity(0.8))
+        .background(Color(.secondarySystemGroupedBackground))
         .cornerRadius(16)
-        .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 4)
+        .shadow(color: Color.primary.opacity(0.06), radius: 8, x: 0, y: 4)
     }
 }
 
@@ -224,7 +222,6 @@ private struct RoutineDetailCalendarSection: View {
     let calendarDays: [CalendarDay]
     let routine: Routine
     @ObservedObject var viewModel: RoutineViewModel
-    let secondaryColor: Color
     
     private let weekdays = ["日", "月", "火", "水", "木", "金", "土"]
     
@@ -254,9 +251,9 @@ private struct RoutineDetailCalendarSection: View {
                 }
             }
             .padding(16)
-            .background(Color.white.opacity(0.8))
+            .background(Color(.secondarySystemGroupedBackground))
             .cornerRadius(16)
-            .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 4)
+            .shadow(color: Color.primary.opacity(0.06), radius: 8, x: 0, y: 4)
         }
     }
     
@@ -274,6 +271,6 @@ private struct RoutineDetailCalendarSection: View {
     private func weekdayHeaderColor(index: Int) -> Color {
         if index == 0 { return Color.red.opacity(0.85) }
         if index == 6 { return Color.blue.opacity(0.8) }
-        return secondaryColor
+        return Color.secondary
     }
 }
